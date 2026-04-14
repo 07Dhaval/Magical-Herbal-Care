@@ -8,12 +8,12 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ScrollToTop from "./components/ScrollToTop";
 import Wishlist from "./pages/Wishlist";
+import Cart from "./pages/Cart";
 
 function App() {
   return (
     <Router>
       <ScrollToTop /> {/* 🔥 THIS LINE */}
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<ShopAll />} />
@@ -21,6 +21,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/cart" element={<Cart />} />
       </Routes>
     </Router>
   );

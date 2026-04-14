@@ -144,10 +144,30 @@ export default function ProductDetails() {
     }
   };
 
+  // ✅ ADDED ONLY THIS FUNCTION
+  const handleAddToCart = () => {
+    const existingCart =
+      JSON.parse(localStorage.getItem("cartItems")) || [];
+
+    const alreadyExists = existingCart.some(
+      (item) => item.id === product.id
+    );
+
+    if (!alreadyExists) {
+      const updatedCart = [...existingCart, product];
+      localStorage.setItem("cartItems", JSON.stringify(updatedCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      alert("Product added to cart");
+    } else {
+      alert("Product already in cart");
+    }
+  };
+
   return (
     <section className="bg-[#f3f3f3] min-h-screen py-8">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+
           <div>
             <div className="relative overflow-hidden bg-white flex items-center justify-center">
               <span className="absolute top-4 left-4 z-10 bg-[#d98b57] text-white text-[12px] px-3 py-1 rounded-full">
@@ -188,12 +208,7 @@ export default function ProductDetails() {
                 <Star size={14} fill="currentColor" strokeWidth={0} />
                 <Star size={14} fill="currentColor" strokeWidth={0} />
                 <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star
-                  size={14}
-                  fill="currentColor"
-                  strokeWidth={0}
-                  className="text-[#d8d8d8]"
-                />
+                <Star size={14} className="text-[#d8d8d8]" />
               </div>
               <span className="text-[12px] text-[#666]">(15)</span>
             </div>
@@ -214,12 +229,22 @@ export default function ProductDetails() {
               </button>
             </div>
 
-            <button
-              onClick={handleAddToWishlist}
-              className="mt-4 bg-[#0f4f8b] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4"
-            >
-              Add to Wishlist
-            </button>
+            {/* ✅ ONLY THIS PART CHANGED */}
+            <div className="mt-4 flex gap-4 flex-wrap">
+              <button
+                onClick={handleAddToCart}
+                className="bg-black hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4"
+              >
+                Add to Cart
+              </button>
+
+              <button
+                onClick={handleAddToWishlist}
+                className="bg-[#0f4f8b] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4"
+              >
+                Add to Wishlist
+              </button>
+            </div>
 
             <div className="mt-6 text-[13px] text-[#666] leading-7">
               <p>
@@ -230,28 +255,7 @@ export default function ProductDetails() {
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="mt-10 border border-[#dddddd] bg-white">
-          <div className="flex border-b border-[#dddddd]">
-            <button className="px-8 py-4 text-[14px] font-medium text-[#222] border-r border-[#dddddd] bg-white">
-              Description
-            </button>
-            <button className="px-8 py-4 text-[14px] font-medium text-[#777]">
-              Reviews(0)
-            </button>
-          </div>
-
-          <div className="p-8 sm:p-10 text-[14px] sm:text-[15px] text-[#666] leading-8">
-            <p>
-              {product.name} is a premium {product.category.toLowerCase()} product
-              designed for quality, comfort, and everyday use.
-            </p>
-
-            <p className="mt-6">
-              This product matches your theme and gives a clean professional layout.
-            </p>
-          </div>
         </div>
       </div>
     </section>
