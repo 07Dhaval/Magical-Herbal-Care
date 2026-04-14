@@ -98,7 +98,7 @@ export default function HomePage2() {
             </p>
 
             <Link to="/shop">
-              <button className="mt-8 bg-black text-white px-7 py-3 rounded-full uppercase tracking-wide">
+              <button className="mt-8 bg-black text-white font-semibold px-7 py-3 rounded-full uppercase tracking-wide">
                 Explore Now
               </button>
             </Link>

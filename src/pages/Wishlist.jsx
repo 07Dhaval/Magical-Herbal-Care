@@ -20,7 +20,6 @@ export default function Wishlist() {
     window.dispatchEvent(new Event("wishlistUpdated"));
   };
 
-  // ✅ ADD TO CART FUNCTION
   const addToCart = (item) => {
     const existingCart =
       JSON.parse(localStorage.getItem("cartItems")) || [];
@@ -43,60 +42,59 @@ export default function Wishlist() {
     <>
       <Header />
 
-      <section className="bg-[#f3f3f3] -mb-28 min-h-screen py-10">
+      <section className="bg-[#f3f3f3] min-h-screen pt-10 pb-28">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          <h1 className="text-[32px] text-center sm:text-[40px] font-semibold text-[#1D1D1D] mb-8">
-            Wishlist
+          <h1 className="text-[36px] sm:text-[48px] text-center font-semibold text-[#1d2d5a] mb-10">
+            Your Wishlist
           </h1>
 
           {wishlistItems.length === 0 ? (
-            <p className="text-[#666] text-[16px]">Your wishlist is empty.</p>
+            <p className="text-[#666] text-[16px] text-center">
+              Your wishlist is empty.
+            </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex flex-wrap gap-6">
               {wishlistItems.map((item) => (
-                <div key={item.id} className="bg-white p-4 shadow-sm">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-[260px] object-contain"
-                  />
+                <div
+                  key={item.id}
+                  className="w-[260px] bg-white rounded-[14px] border border-[#ececec] shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden"
+                >
+                  <div className="w-full h-[250px] bg-white flex items-center justify-center overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-contain p-3"
+                    />
+                  </div>
 
-                  <h3 className="mt-4 text-[18px] font-medium text-[#222]">
-                    {item.name}
-                  </h3>
+                  <div className="px-4 pt-4 pb-3">
+                    <h3 className="text-[18px] leading-[1.25] font-semibold text-[#22304f]">
+                      {item.name}
+                    </h3>
 
-                  <p className="mt-1 text-[14px] text-[#666]">{item.category}</p>
-                  <p className="mt-2 text-[18px] text-[#0f4f8b] font-medium">
-                    {item.price}
-                  </p>
+                    <p className="mt-1 text-[14px] text-[#7a7a7a]">
+                      {item.category}
+                    </p>
 
-                  {/* ACTIONS */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <Link
-                      to={`/product/${item.id}`}
-                      state={{ product: item }}
-                      className="text-[#0f4f8b] text-[14px] font-medium"
+                    <p className="mt-3 text-[18px] leading-none font-semibold text-[#22304f]">
+                      {item.price}
+                    </p>
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-[#ececec] flex items-center justify-between">
+                    <button
+                      onClick={() => addToCart(item)}
+                      className="bg-[#193464] hover:opacity-90 transition text-white text-[13px] font-medium px-5 py-2.5 rounded-[8px] flex items-center gap-2"
                     >
-                      View Product
-                    </Link>
-
-                    <div className="flex items-center gap-3">
-                      {/* ✅ ADD TO CART ICON */}
-                      <button
-                        onClick={() => addToCart(item)}
-                        className="text-black hover:text-[#0f4f8b] transition mr-4"
-                      >
-                        <ShoppingCart size={18} />
-                      </button>
-
-                      {/* DELETE */}
-                      <button
-                        onClick={() => removeFromWishlist(item.id)}
-                        className="text-red-500"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                        Add to Cart <ShoppingCart size={16} />
+                    </button>
+                      
+                    <button
+                      onClick={() => removeFromWishlist(item.id)}
+                      className="text-[#d65a5a] text-[16px] font-medium"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               ))}
@@ -104,6 +102,7 @@ export default function Wishlist() {
           )}
         </div>
       </section>
+
       <Footer />
     </>
   );

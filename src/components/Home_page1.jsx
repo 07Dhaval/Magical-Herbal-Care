@@ -49,7 +49,7 @@ export default function HomePage1() {
               </p>
 
               <Link to="/shop">
-                <button className="mt-8 w-fit bg-[#103258] text-white text-[14px] px-8 py-4 rounded-full uppercase hover:opacity-90 transition">
+                <button className="mt-8 w-fit bg-[#103258] text-white font-semibold text-[14px] px-8 py-4 rounded-full uppercase hover:opacity-90 transition">
                   Explore Now
                 </button>
               </Link>

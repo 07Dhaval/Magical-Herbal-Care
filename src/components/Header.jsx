@@ -59,8 +59,7 @@ export default function Header() {
         {/* Right Icons */}
         <div className="flex items-center gap-5 text-gray-700">
           <Search className="cursor-pointer hover:text-black" size={20} />
-          <User className="cursor-pointer hover:text-black" size={20} />
-
+          
           {/* Wishlist */}
           <Link to="/wishlist" className="relative">
             <Heart className="cursor-pointer hover:text-black" size={20} />
