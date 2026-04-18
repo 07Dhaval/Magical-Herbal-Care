@@ -6,9 +6,18 @@ import ShopAll from "./pages/shop_all";
 import Product from "./pages/product";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import ScrollToTop from "./components/ScrollToTop";
 import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
+
+import TermsConditions from "./pages/TermsConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundReturn from "./pages/RefundReturn";
+import ShippingPolicy from "./pages/ShippingPolicy";
+import Disclaimer from "./pages/Disclaimer";
+
+import ScrollToTop from "./components/ScrollToTop";
 
 // Admin imports
 import AdminLogin from "./admin/pages/AdminLogin";
@@ -20,8 +29,10 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
+
       <Routes>
-        {/* Website Routes */}
+
+        {/* WEBSITE */}
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<ShopAll />} />
         <Route path="/product/:id" element={<Product />} />
@@ -29,8 +40,17 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
 
-        {/* Admin Routes */}
+        {/* POLICY PAGES */}
+        <Route path="/terms-conditions" element={<TermsConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/refund-return" element={<RefundReturn />} />
+        <Route path="/shipping-policy" element={<ShippingPolicy />} />
+        <Route path="/disclaimer" element={<Disclaimer />} />
+
+        {/* ADMIN */}
         <Route path="/admin/login" element={<AdminLogin />} />
 
         <Route
@@ -50,6 +70,7 @@ function App() {
             </ProtectedAdminRoute>
           }
         />
+
       </Routes>
     </Router>
   );

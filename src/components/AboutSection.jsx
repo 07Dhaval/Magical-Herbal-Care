@@ -46,16 +46,12 @@ export default function AboutSection() {
             </h1>
 
             <p className="mt-6 text-[#5b5b5b] text-[15px] sm:text-[16px] leading-8 max-w-[620px]">
-              Magical Herbal Care is committed to offering quality products that support
-              daily wellness, home care, and personal care with trust,
-              simplicity, and comfort.
+              We are a passionate herbal care brand dedicated to providing natural and effective solutions for your hair and skin. Ouyr products are carefully crafted using high-quality herbal ingredients, keeping traditional remedies and modern needs in mind.
+We believe in the power of nature and aim to create safe, gentle, and chemical-free products that suit all age groups. Each product is made with care to deliver the best results while maintaining purity and authenticity.
+Our mission is to promote healthy self-care with products you can trust. We focus on quality, honesty, and customer satisfaction in everything we do
             </p>
 
-            <p className="mt-4 text-[#5b5b5b] text-[15px] sm:text-[16px] leading-8 max-w-[620px]">
-              We believe every product should feel dependable, thoughtfully
-              selected, and beautifully presented for modern everyday living.
-            </p>
-
+            
             <Link to="/shop">
                 <button className="mt-8 w-fit bg-[#103258] text-white font-semibold
                  text-[14px] px-8 py-4 rounded-full uppercase hover:opacity-90 transition">
