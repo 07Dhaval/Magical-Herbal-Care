@@ -11,7 +11,7 @@ const contactInfo = [
     id: 2,
     icon: Mail,
     title: "Email",
-    value: "info@freshiya.com",
+    value: "info@magicalherbalcare.com",
   },
   {
     id: 3,
@@ -40,7 +40,7 @@ export default function ContactSection() {
           </h1>
 
           <p className="mt-4 text-[#5b5b5b] text-[15px] sm:text-[16px] max-w-[700px] mx-auto leading-8">
-            Get in touch with Freshiya for product enquiries, support, and
+            Get in touch with Magical Herbal Care for product enquiries, support, and
             business information. We are always here to help you.
           </p>
         </div>

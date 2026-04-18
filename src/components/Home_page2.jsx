@@ -1,5 +1,5 @@
 import React from "react";
-import s8 from "../assets/s8.jpeg";
+import s3 from "../assets/hand.png";
 import { Link } from "react-router-dom";
 
 const offerProducts = [
@@ -17,27 +17,26 @@ const offerProducts = [
     price: "MRP Rs. 199.00",
     image: "/s1.jpeg",
   },
-  {
-    id: 3,
-    category: "Personal Care",
-    name: "Sanitary Napkin",
-    price: "MRP Rs. 149.00",
-    image: "/s2.jpeg",
-  },
-  {
-    id: 4,
-    category: "Combo Pack",
-    name: "Premium Essentials Combo",
-    price: "MRP Rs. 899.00",
-    image: "/s3.jpeg",
-  },
+  // {
+  //   id: 3,
+  //   category: "Personal Care",
+  //   name: "Sanitary Napkin",
+  //   price: "MRP Rs. 149.00",
+  //   image: "/s2.jpeg",
+  // },
+  // {
+  //   id: 4,
+  //   category: "Combo Pack",
+  //   name: "Premium Essentials Combo",
+  //   price: "MRP Rs. 899.00",
+  //   image: "/s3.jpeg",
+  // },
 ];
 
 function ProductCard({ item }) {
   return (
     <div className="text-center flex flex-col items-center">
-      {/* IMAGE CARD (AUTO SIZE) */}
-      <div className="bg-white flex items-center justify-center p-3 max-w-[260px] w-full">
+      <div className="bg-[#fffdf7] border border-[#e7dcc3] rounded-[20px] shadow-sm flex items-center justify-center p-3 max-w-[260px] w-full">
         <img
           src={item.image}
           alt={item.name}
@@ -45,15 +44,17 @@ function ProductCard({ item }) {
         />
       </div>
 
-      <p className="mt-4 text-xs text-[#0000008F]">{item.category}</p>
+      <p className="mt-4 text-xs text-[#8b6b2f] uppercase tracking-[1.5px]">
+        {item.category}
+      </p>
 
-      <h3 className="mt-1 text-[15px] sm:text-[16px] text-[#000000]">
+      <h3 className="mt-1 text-[15px] sm:text-[16px] text-[#2f5d3a] font-medium">
         {item.name}
       </h3>
 
-      <div className="mt-1 text-black text-sm tracking-[2px]">★★★★★</div>
+      <div className="mt-1 text-[#b48a2c] text-sm tracking-[2px]">★★★★★</div>
 
-      <p className="mt-1 font-medium text-[#000000]">{item.price}</p>
+      <p className="mt-1 font-medium text-[#6b4b1f]">{item.price}</p>
     </div>
   );
 }
@@ -61,15 +62,14 @@ function ProductCard({ item }) {
 export default function HomePage2() {
   return (
     <>
-      {/* Top Offers */}
-      <section className="py-14 bg-[#f3f3f3]">
+      <section className="py-14 bg-[#f6f3eb]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#2f2f2f]">
+            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
               Top Offers
             </h2>
 
-            <p className="text-sm text-[#555] mt-2">
+            <p className="text-sm text-[#456b3d] mt-2">
               Here’s some of our most popular products people are in love with.
             </p>
           </div>
@@ -82,35 +82,36 @@ export default function HomePage2() {
         </div>
       </section>
 
-      {/* Promo Banner */}
-      <section className="bg-[#F4E9D6]">
+      <section className="bg-[#f6f3eb]">
         <div className="grid grid-cols-1 md:grid-cols-2 items-stretch">
-          {/* LEFT */}
-          <div className="flex flex-col justify-center items-center text-center px-6 py-16 bg-[#e6dcc6]">
-            <img src="/a.png" alt="Authentic" className="w-[160px] mb-6" />
+          <div className="flex flex-col justify-center items-center text-center px-6 py-16 bg-[#efe7d4]">
+            <div className="bg-[#fffdf7] p-4 rounded-2xl shadow-sm border border-[#e7dcc3] mb-6">
+              <img src="/a.png" alt="Authentic" className="w-[160px]" />
+            </div>
 
-            <h2 className="font-serif text-[36px] text-[#000000]">
+            <h2 className="font-serif text-[36px] text-[#6b4b1f]">
               Make You’re Unique
             </h2>
 
-            <p className="mt-3 text-[#000000]">
+            <p className="mt-3 text-[#456b3d]">
               Your Health must be taken care of every day.
             </p>
 
             <Link to="/shop">
-              <button className="mt-8 bg-black text-white font-semibold px-7 py-3 rounded-full uppercase tracking-wide">
+              <button className="mt-8 bg-[#2f5d3a] hover:bg-[#6b4b1f] text-white font-semibold px-7 py-3 rounded-full uppercase tracking-wide transition">
                 Explore Now
               </button>
             </Link>
           </div>
 
-          {/* RIGHT */}
-          <div className="h-[520px] w-full bg-[#f4e9d6] flex items-center justify-center">
-            <img
-              src={s8}
-              alt="Promo"
-              className="w-full h-full object-contain p-6"
-            />
+          <div className="h-[520px] w-full bg-[#f6f3eb] flex items-center justify-center">
+            <div className="w-full h-full bg-[#fffdf7] border-l border-[#e7dcc3] flex items-center justify-center">
+              <img
+                src={s3}
+                alt="Promo"
+                className="w-full h-full object-contain p-6"
+              />
+            </div>
           </div>
         </div>
       </section>

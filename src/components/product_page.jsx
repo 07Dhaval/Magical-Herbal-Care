@@ -144,7 +144,6 @@ export default function ProductDetails() {
     }
   };
 
-  // ✅ ADDED ONLY THIS FUNCTION
   const handleAddToCart = () => {
     const existingCart =
       JSON.parse(localStorage.getItem("cartItems")) || [];
@@ -229,7 +228,6 @@ export default function ProductDetails() {
               </button>
             </div>
 
-            {/* ✅ ONLY THIS PART CHANGED */}
             <div className="mt-4 flex gap-4 flex-wrap">
               <button
                 onClick={handleAddToCart}

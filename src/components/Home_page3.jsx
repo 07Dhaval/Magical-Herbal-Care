@@ -15,36 +15,35 @@ const sellingProducts = [
     price: "₹199.00",
     image: "/s1.jpeg",
   },
-  {
-    id: 3,
-    category: "Personal Care",
-    name: "Sanitary Napkin",
-    price: "₹149.00",
-    image: "/s2.jpeg",
-  },
-  {
-    id: 4,
-    category: "Combo Pack",
-    name: "Premium Essentials Combo",
-    price: "₹899.00",
-    image: "/s3.jpeg",
-  },
+  // {
+  //   id: 3,
+  //   category: "Personal Care",
+  //   name: "Sanitary Napkin",
+  //   price: "₹149.00",
+  //   image: "/s2.jpeg",
+  // },
+  // {
+  //   id: 4,
+  //   category: "Combo Pack",
+  //   name: "Premium Essentials Combo",
+  //   price: "₹899.00",
+  //   image: "/s3.jpeg",
+  // },
 ];
 
 const followImages = [
-  "/s1.jpeg",
-  "/s2.jpeg",
-  "/s3.jpeg",
-  "/s4.jpeg",
-  "/s5.jpeg",
-  "/s6.jpeg",
+  // "/s1.jpeg",
+  // "/s2.jpeg",
+  // "/s3.jpeg",
+  // "/s4.jpeg",
+  // "/s5.jpeg",
+  // "/s6.jpeg",
 ];
 
 function ProductCard({ item }) {
   return (
     <div className="text-center">
-      {/* IMAGE CARD (AUTO HEIGHT) */}
-      <div className="overflow-hidden bg-white flex items-center justify-center">
+      <div className="overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[20px] shadow-sm flex items-center justify-center">
         <img
           src={item.image}
           alt={item.name}
@@ -52,12 +51,14 @@ function ProductCard({ item }) {
         />
       </div>
 
-      <p className="mt-4 text-xs text-[#0000008F]">{item.category}</p>
-      <h3 className="text-[15px] sm:text-base text-[#000000B5]">
+      <p className="mt-4 text-xs text-[#9a7b2f] uppercase tracking-[1.2px]">
+        {item.category}
+      </p>
+      <h3 className="text-[15px] sm:text-base text-[#2f5b2f] font-medium">
         {item.name}
       </h3>
-      <div className="mt-1 text-black text-sm">★★★★★</div>
-      <p className="mt-1 font-medium text-[#000000B5]">{item.price}</p>
+      <div className="mt-1 text-[#c39a32] text-sm">★★★★★</div>
+      <p className="mt-1 font-medium text-[#6b4b1f]">{item.price}</p>
     </div>
   );
 }
@@ -65,35 +66,31 @@ function ProductCard({ item }) {
 export default function HomePage3() {
   return (
     <div>
-      {/* Top Selling */}
-      <section className="py-14 bg-[#f3f3f3]">
+      <section className="py-14 bg-[#f7f3e8]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-
           <div className="text-center">
-            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#2f2f2f]">
+            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
               Top Selling
             </h2>
-            <p className="text-sm text-[#555] mt-2">
+            <p className="text-sm text-[#456b3d] mt-2">
               Here’s some of our most popular products people are in love with.
             </p>
           </div>
 
-          {/* GRID */}
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4 items-start">
             {sellingProducts.map((item) => (
               <ProductCard key={item.id} item={item} />
             ))}
           </div>
 
-          <div className="mt-16 border-t border-[#d8d8d8]" />
+          <div className="mt-16 border-t border-[#dccfa9]" />
 
-          {/* Follow Us */}
           <div className="pt-14">
             <div className="text-center">
-              <h2 className="font-serif text-[30px] sm:text-[36px] text-[#2f2f2f]">
+              <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
                 Follow Us
               </h2>
-              <p className="text-sm text-[#555] mt-2">
+              <p className="text-sm text-[#456b3d] mt-2">
                 Inspire and let yourself be inspired.
               </p>
             </div>
@@ -102,7 +99,7 @@ export default function HomePage3() {
               {followImages.map((img, index) => (
                 <div
                   key={index}
-                  className="overflow-hidden bg-white flex items-center justify-center"
+                  className="overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[18px] shadow-sm flex items-center justify-center"
                 >
                   <img
                     src={img}
@@ -113,7 +110,6 @@ export default function HomePage3() {
               ))}
             </div>
           </div>
-
         </div>
       </section>
     </div>

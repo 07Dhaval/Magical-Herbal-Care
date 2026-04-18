@@ -57,7 +57,6 @@ export default function Cart() {
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-10 items-start">
 
-              {/* LEFT SIDE (SMALL CARDS) */}
               <div className="flex flex-wrap gap-6">
 
                 {cartItems.map((item) => (
@@ -107,7 +106,6 @@ export default function Cart() {
 
               </div>
 
-              {/* RIGHT SIDE SUMMARY */}
               <div className="sticky top-24 bg-white rounded-[14px] shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-[#ececec] p-5">
                 <h2 className="text-[20px] font-semibold text-[#22304f] mb-5">
                   Order Summary

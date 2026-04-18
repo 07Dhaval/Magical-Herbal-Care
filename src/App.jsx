@@ -10,11 +10,18 @@ import ScrollToTop from "./components/ScrollToTop";
 import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
 
+// Admin imports
+import AdminLogin from "./admin/pages/AdminLogin";
+import Dashboard from "./admin/pages/Dashboard";
+import Orders from "./admin/pages/Orders";
+import ProtectedAdminRoute from "./admin/ProtectedAdminRoute";
+
 function App() {
   return (
     <Router>
-      <ScrollToTop /> {/* 🔥 THIS LINE */}
+      <ScrollToTop />
       <Routes>
+        {/* Website Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<ShopAll />} />
         <Route path="/product/:id" element={<Product />} />
@@ -22,6 +29,27 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedAdminRoute>
+              <Dashboard />
+            </ProtectedAdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedAdminRoute>
+              <Orders />
+            </ProtectedAdminRoute>
+          }
+        />
       </Routes>
     </Router>
   );

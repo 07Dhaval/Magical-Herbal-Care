@@ -36,7 +36,7 @@ export default function AboutSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
           <div>
             <p className="text-[13px] uppercase tracking-[0.2em] text-[#103258]/80 font-medium">
-              About Freshiya
+              About Magical Herbal Care
             </p>
 
             <h1 className="mt-4 font-serif text-[34px] sm:text-[42px] lg:text-[58px] leading-[1.02] text-[#000000BF]">
@@ -46,7 +46,7 @@ export default function AboutSection() {
             </h1>
 
             <p className="mt-6 text-[#5b5b5b] text-[15px] sm:text-[16px] leading-8 max-w-[620px]">
-              Freshiya is committed to offering quality products that support
+              Magical Herbal Care is committed to offering quality products that support
               daily wellness, home care, and personal care with trust,
               simplicity, and comfort.
             </p>
@@ -57,7 +57,8 @@ export default function AboutSection() {
             </p>
 
             <Link to="/shop">
-                <button className="mt-8 w-fit bg-[#103258] text-white font-semibold text-[14px] px-8 py-4 rounded-full uppercase hover:opacity-90 transition">
+                <button className="mt-8 w-fit bg-[#103258] text-white font-semibold
+                 text-[14px] px-8 py-4 rounded-full uppercase hover:opacity-90 transition">
                   Explore Now
                 </button>
               </Link>
