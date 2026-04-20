@@ -17,7 +17,7 @@ const contactInfo = [
     id: 3,
     icon: MapPin,
     title: "Address",
-    value: "Express view apartment, sector 105, noida",
+    value: "Express view apartment, Sector 105, Noida",
   },
   {
     id: 4,
