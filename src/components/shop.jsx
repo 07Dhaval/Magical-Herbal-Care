@@ -41,71 +41,6 @@ const shopProducts = [
       "A reliable personal care product created for hygiene, comfort, and protection.",
     ],
   },
-  // {
-  //   id: 4,
-  //   name: "Freshiya Premium Essentials Combo",
-  //   category: "Combo Pack",
-  //   image: "/s3.jpeg",
-  //   price: "MRP Rs. 899.00",
-  //   description: [
-  //     "A complete Freshiya essentials combo featuring multiple premium household and personal care products.",
-  //     "Perfect for customers who want a convenient selection of Freshiya bestsellers in one pack.",
-  //     "Combines fragrance, hygiene, hair care, and wellness products for everyday use.",
-  //     "An ideal premium combo for families, gifting, or first-time product exploration.",
-  //   ],
-  // },
-  // {
-  //   id: 5,
-  //   name: "Premium Tea",
-  //   category: "Beverages",
-  //   image: "/s4.jpeg",
-  //   price: "MRP Rs. 275.00",
-  //   description: [
-  //     "Freshiya Premium Tea offers a rich taste and refreshing aroma for a delightful tea experience.",
-  //     "Crafted for tea lovers who enjoy a comforting and premium daily beverage.",
-  //     "Perfect for morning freshness, evening relaxation, or sharing with family.",
-  //     "A flavorful tea blend designed to bring warmth, freshness, and satisfaction in every cup.",
-  //   ],
-  // },
-  // {
-  //   id: 6,
-  //   name: "Premium Dhup Con",
-  //   category: "Fragrance & Spiritual Care",
-  //   image: "/s5.jpeg",
-  //   price: "MRP Rs. 180.00",
-  //   description: [
-  //     "Freshiya Premium Dhup Con is made to create a pure, aromatic, and calming atmosphere.",
-  //     "Its rich fragrance helps enhance spiritual rituals, prayer spaces, and home freshness.",
-  //     "Ideal for daily pooja, meditation, and creating a peaceful environment.",
-  //     "A premium incense cone product that brings fragrance, warmth, and devotional comfort.",
-  //   ],
-  // },
-  // {
-  //   id: 7,
-  //   name: "Machhar Agarbatti",
-  //   category: "Home Care",
-  //   image: "/s6.jpeg",
-  //   price: "MRP Rs. 165.00",
-  //   description: [
-  //     "Freshiya Premium Machhar Agarbatti is designed for strong and effective mosquito protection.",
-  //     "Made for safer home use with a practical and convenient incense-stick format.",
-  //     "Helps create a more comfortable indoor environment while supporting daily protection needs.",
-  //     "A reliable home care solution for households seeking effective mosquito control.",
-  //   ],
-  // },
-  // {
-  //   id: 8,
-  //   name: "Brightening Face Wash",
-  //   category: "Skin Care",
-  //   image: "/s7.jpeg",
-  //   price: "MRP Rs. 210.00",
-  //   description: [
-  //     "Freshiya Brightening Face Wash helps revive dull skin and support a fresh, radiant glow.",
-  //     "Infused with brightening care benefits for a clean, healthy-looking appearance.",
-  //     "Suitable for regular daily use and designed for all skin types.",
-  //     "A simple skincare essential for brighter, smoother, and refreshed skin.",
-  //   ],
-  // },
 ];
 
 function ShopCard({ item }) {
@@ -115,7 +50,7 @@ function ShopCard({ item }) {
       state={{ product: item }}
       className="block text-center group"
     >
-      <div className="w-full max-w-[280px] h-[390px] mx-auto bg-white flex items-center justify-center overflow-hidden">
+      <div className="w-full max-w-[280px] h-[390px] mx-auto bg-white border border-[#e7dcc3] rounded-[20px] flex items-center justify-center overflow-hidden shadow-sm transition duration-300 group-hover:shadow-md">
         <img
           src={item.image}
           alt={item.name}
@@ -123,11 +58,11 @@ function ShopCard({ item }) {
         />
       </div>
 
-      <h3 className="mt-4 text-[17px] sm:text-[16px] text-[#000000E5] leading-none">
+      <h3 className="mt-4 text-[17px] sm:text-[16px] text-[#b48a2c] leading-none">
         {item.name}
       </h3>
 
-      <p className="mt-2 text-[12px] text-[#000000B2] leading-none">
+      <p className="mt-2 text-[12px] text-[#2f4f2f] leading-none">
         {item.category}
       </p>
     </Link>
@@ -147,14 +82,14 @@ export default function Shop() {
   }, [selectedCategory]);
 
   return (
-    <section className="bg-[#f3f3f3] min-h-screen py-6 sm:py-8 md:py-10">
+    <section className="bg-[#f8f4ea] min-h-screen py-6 sm:py-8 md:py-10">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
         <div className="text-center">
-          <h1 className="text-[34px] sm:text-[42px] md:text-[50px] font-semibold tracking-wide uppercase text-black leading-none">
+          <h1 className="text-[34px] sm:text-[42px] md:text-[50px] font-semibold tracking-wide uppercase text-[#b48a2c] leading-none">
             Shop All
           </h1>
 
-          <p className="mt-4 text-[10px] sm:text-[11px] md:text-[12px] text-[#444444]">
+          <p className="mt-4 text-[10px] sm:text-[11px] md:text-[12px] text-[#2f4f2f]">
             Explore our premium Freshiya collection across home care, hair care,
             skin care, personal care, and wellness products.
           </p>
@@ -170,8 +105,8 @@ export default function Shop() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 sm:px-5 py-2 text-[12px] sm:text-[13px] md:text-[14px] rounded-full border transition duration-300 ${
                   isActive
-                    ? "bg-black text-white border-black"
-                    : "bg-white text-black border-[#d9d9d9] hover:bg-black hover:text-white hover:border-black"
+                    ? "bg-[#2f4f2f] text-white border-[#2f4f2f]"
+                    : "bg-white text-[#b48a2c] border-[#e7dcc3] hover:bg-[#b48a2c] hover:text-white hover:border-[#b48a2c]"
                 }`}
               >
                 {category}

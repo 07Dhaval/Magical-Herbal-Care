@@ -58,7 +58,7 @@ function ProductCard({ item }) {
         {item.name}
       </h3>
       <div className="mt-1 text-[#c39a32] text-sm">★★★★★</div>
-      <p className="mt-1 font-medium text-[#6b4b1f]">{item.price}</p>
+      <p className="mt-1 font-medium text-[#b48a2c]">{item.price}</p>
     </div>
   );
 }
@@ -69,7 +69,7 @@ export default function HomePage3() {
       <section className="py-14 bg-[#f7f3e8]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
+            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
               Top Selling
             </h2>
             <p className="text-sm text-[#456b3d] mt-2">
@@ -87,7 +87,7 @@ export default function HomePage3() {
 
           <div className="pt-14">
             <div className="text-center">
-              <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
+              <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
                 Follow Us
               </h2>
               <p className="text-sm text-[#456b3d] mt-2">

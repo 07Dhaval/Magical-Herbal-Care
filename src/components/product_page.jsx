@@ -131,7 +131,7 @@ export default function ProductDetails() {
       JSON.parse(localStorage.getItem("wishlistItems")) || [];
 
     const alreadyExists = existingWishlist.some(
-      (item) => item.id === product.id
+      (item) => item.id === product.id,
     );
 
     if (!alreadyExists) {
@@ -145,12 +145,9 @@ export default function ProductDetails() {
   };
 
   const handleAddToCart = () => {
-    const existingCart =
-      JSON.parse(localStorage.getItem("cartItems")) || [];
+    const existingCart = JSON.parse(localStorage.getItem("cartItems")) || [];
 
-    const alreadyExists = existingCart.some(
-      (item) => item.id === product.id
-    );
+    const alreadyExists = existingCart.some((item) => item.id === product.id);
 
     if (!alreadyExists) {
       const updatedCart = [...existingCart, product];
@@ -163,13 +160,12 @@ export default function ProductDetails() {
   };
 
   return (
-    <section className="bg-[#f3f3f3] min-h-screen py-8">
+    <section className="bg-[#f8f4ea] min-h-screen py-8">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-
           <div>
-            <div className="relative overflow-hidden bg-white flex items-center justify-center">
-              <span className="absolute top-4 left-4 z-10 bg-[#d98b57] text-white text-[12px] px-3 py-1 rounded-full">
+            <div className="relative overflow-hidden bg-white flex items-center justify-center border border-[#e7dcc3] rounded-[20px]">
+              <span className="absolute top-4 left-4 z-10 bg-[#b48a2c] text-white text-[12px] px-3 py-1 rounded-full">
                 -24%
               </span>
 
@@ -184,7 +180,7 @@ export default function ProductDetails() {
               {productImages.map((img, index) => (
                 <div
                   key={index}
-                  className="min-w-[110px] sm:min-w-[130px] h-[100px] sm:h-[120px] border border-[#d9d9d9] bg-white flex items-center justify-center overflow-hidden"
+                  className="min-w-[110px] sm:min-w-[130px] h-[100px] sm:h-[120px] border border-[#e7dcc3] bg-white flex items-center justify-center overflow-hidden rounded-[12px]"
                 >
                   <img
                     src={img}
@@ -197,22 +193,22 @@ export default function ProductDetails() {
           </div>
 
           <div className="pt-2">
-            <h1 className="text-[28px] sm:text-[34px] lg:text-[42px] text-[#1D1D1D] leading-tight font-semibold">
+            <h1 className="text-[28px] sm:text-[34px] lg:text-[42px] text-[#b48a2c] leading-tight font-semibold">
               {product.name}
             </h1>
 
             <div className="mt-4 flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[#d07b47]">
+              <div className="flex items-center gap-1 text-[#e0b85a]">
                 <Star size={14} fill="currentColor" strokeWidth={0} />
                 <Star size={14} fill="currentColor" strokeWidth={0} />
                 <Star size={14} fill="currentColor" strokeWidth={0} />
                 <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star size={14} className="text-[#d8d8d8]" />
+                <Star size={14} className="text-[#ddd]" />
               </div>
               <span className="text-[12px] text-[#666]">(15)</span>
             </div>
 
-            <p className="mt-6 text-[22px] sm:text-[28px] text-[#0f4f8b] font-medium">
+            <p className="mt-6 text-[22px] sm:text-[28px] text-[#2f4f2f] font-medium">
               {product.price}
             </p>
 
@@ -223,7 +219,7 @@ export default function ProductDetails() {
             </ul>
 
             <div className="mt-4">
-              <button className="border border-[#d9d9d9] bg-white text-[#333] text-[13px] px-6 py-3">
+              <button className="border border-[#e7dcc3] bg-white text-[#b48a2c] text-[13px] px-6 py-3 rounded-full">
                 500 GM
               </button>
             </div>
@@ -231,14 +227,14 @@ export default function ProductDetails() {
             <div className="mt-4 flex gap-4 flex-wrap">
               <button
                 onClick={handleAddToCart}
-                className="bg-black hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4"
+                className="bg-[#2f4f2f] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4 rounded-full"
               >
                 Add to Cart
               </button>
 
               <button
                 onClick={handleAddToWishlist}
-                className="bg-[#0f4f8b] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4"
+                className="bg-[#b48a2c] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4 rounded-full"
               >
                 Add to Wishlist
               </button>
@@ -246,14 +242,15 @@ export default function ProductDetails() {
 
             <div className="mt-6 text-[13px] text-[#666] leading-7">
               <p>
-                <span className="text-[#333]">Category:</span> {product.category}
+                <span className="text-[#b48a2c]">Category:</span>{" "}
+                {product.category}
               </p>
               <p>
-                <span className="text-[#333]">Tags:</span> Premium, Modern, Daily Use
+                <span className="text-[#b48a2c]">Tags:</span> Premium, Herbal,
+                Daily Use
               </p>
             </div>
           </div>
-
         </div>
       </div>
     </section>

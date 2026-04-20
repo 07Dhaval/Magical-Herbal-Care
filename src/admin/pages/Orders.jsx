@@ -15,12 +15,15 @@ export default function Orders() {
   return (
     <AdminLayout>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold text-[#6b4b1f]">Orders</h1>
+        
+        <h1 className="text-3xl font-bold text-[#b48a2c]">
+          Orders
+        </h1>
 
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="border border-[#dccfa9] rounded-xl px-4 py-3 bg-white outline-none"
+          className="border border-[#e7dcc3] rounded-xl px-4 py-3 bg-white outline-none text-[#2f4f2f] focus:border-[#b48a2c]"
         >
           {categories.map((cat) => (
             <option key={cat} value={cat}>
@@ -32,8 +35,9 @@ export default function Orders() {
 
       <div className="overflow-x-auto bg-white border border-[#e7dcc3] rounded-2xl shadow-sm">
         <table className="w-full min-w-[900px]">
-          <thead className="bg-[#efe7d4]">
-            <tr className="text-left text-[#6b4b1f]">
+          
+          <thead className="bg-[#f3ead7]">
+            <tr className="text-left text-[#b48a2c]">
               <th className="px-4 py-3">Order ID</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Product</th>
@@ -48,19 +52,35 @@ export default function Orders() {
 
           <tbody>
             {filteredOrders.map((order) => (
-              <tr key={order.id} className="border-t border-[#eee4cf] text-[#456b3d]">
+              <tr
+                key={order.id}
+                className="border-t border-[#e7dcc3] text-[#2f4f2f] hover:bg-[#f9f6ef] transition"
+              >
                 <td className="px-4 py-3">{order.id}</td>
                 <td className="px-4 py-3">{order.customerName}</td>
                 <td className="px-4 py-3">{order.productName}</td>
                 <td className="px-4 py-3">{order.category}</td>
                 <td className="px-4 py-3">{order.quantity}</td>
                 <td className="px-4 py-3">₹{order.price}</td>
-                <td className="px-4 py-3">₹{order.total}</td>
-                <td className="px-4 py-3">{order.status}</td>
+                <td className="px-4 py-3 font-medium text-[#b48a2c]">
+                  ₹{order.total}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-[12px] font-medium ${
+                      order.status === "Delivered"
+                        ? "bg-[#e6f4ea] text-[#2f6f3e]"
+                        : "bg-[#fff4e5] text-[#b48a2c]"
+                    }`}
+                  >
+                    {order.status}
+                  </span>
+                </td>
                 <td className="px-4 py-3">{order.date}</td>
               </tr>
             ))}
           </tbody>
+
         </table>
       </div>
     </AdminLayout>

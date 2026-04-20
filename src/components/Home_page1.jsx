@@ -94,9 +94,8 @@ export default function HomePage1() {
                     : "opacity-0 translate-x-8 absolute inset-0 pointer-events-none"
                 }`}
               >
-                {/* Left Content */}
                 <div className="flex flex-col justify-center pb-10 md:pb-16">
-                  <h1 className="text-[48px] sm:text-[58px] lg:text-[78px] leading-[0.95] font-serif text-[#6b4b1f] uppercase">
+                  <h1 className="text-[48px] sm:text-[58px] lg:text-[78px] leading-[0.95] font-serif text-[#b48a2c] uppercase">
                     {slide.title}
                   </h1>
 
@@ -105,12 +104,11 @@ export default function HomePage1() {
                   </p>
 
                   <Link to="/shop">
-                    <button className="mt-8 w-fit bg-[#2f5d3a] text-white font-semibold text-[14px] px-8 py-4 rounded-full uppercase hover:bg-[#6b4b1f] transition">
+                    <button className="mt-8 w-fit bg-[#2f4f2f] text-white font-semibold text-[14px] px-8 py-4 rounded-full uppercase hover:bg-[#b48a2c] transition">
                       Explore Now
                     </button>
                   </Link>
 
-                  {/* Dots */}
                   <div className="flex items-center gap-3 mt-8">
                     {heroSlides.map((_, dotIndex) => (
                       <button
@@ -127,7 +125,6 @@ export default function HomePage1() {
                   </div>
                 </div>
 
-                {/* Right Image */}
                 <div className="relative mt-2 mb-4 w-full h-[420px] sm:h-[520px] lg:h-[650px] flex items-center justify-center md:justify-end">
                   <div className="w-full h-full max-w-[700px] bg-[#fffdf8] rounded-[30px] border border-[#e7dcc3] shadow-sm flex items-center justify-center p-4 sm:p-6">
                     <img
@@ -148,7 +145,7 @@ export default function HomePage1() {
       <section className="py-14 bg-[#f6f3eb]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
+            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
               You Might Like
             </h2>
             <p className="text-sm text-[#456b3d] mt-2">
@@ -167,7 +164,7 @@ export default function HomePage1() {
                   />
                 </div>
 
-                <h3 className="mt-4 text-[16px] sm:text-[18px] font-medium text-[#2f5d3a]">
+                <h3 className="mt-4 text-[16px] sm:text-[18px] font-medium text-[#2f4f2f]">
                   {item.name}
                 </h3>
               </div>

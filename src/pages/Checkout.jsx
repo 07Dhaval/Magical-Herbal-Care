@@ -141,12 +141,7 @@ export default function Checkout() {
           address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
         },
         theme: {
-          color: "#2f5d3a",
-        },
-        modal: {
-          ondismiss: function () {
-            console.log("Payment popup closed");
-          },
+          color: "#2f4f2f", // herbal green
         },
       };
 
@@ -164,15 +159,17 @@ export default function Checkout() {
     <>
       <Header />
 
-      <section className="min-h-screen bg-[#f6f3eb] py-10">
+      <section className="min-h-screen bg-[#f8f4ea] py-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          <h1 className="text-[30px] sm:text-[38px] font-semibold text-center text-[#2f5d3a] mb-10">
+          <h1 className="text-[30px] sm:text-[38px] font-semibold text-center text-[#b48a2c] mb-10">
             Checkout
           </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10">
+            
+            {/* FORM */}
             <div className="bg-white rounded-2xl border border-[#e7dcc3] shadow-sm p-5 sm:p-7">
-              <h2 className="text-[22px] font-semibold text-[#6b4b1f] mb-6">
+              <h2 className="text-[22px] font-semibold text-[#b48a2c] mb-6">
                 Billing Details
               </h2>
 
@@ -195,8 +192,9 @@ export default function Checkout() {
               />
             </div>
 
+            {/* SUMMARY */}
             <div className="bg-white rounded-2xl border border-[#e7dcc3] shadow-sm p-5 sm:p-6 h-fit sticky top-24">
-              <h2 className="text-[22px] font-semibold text-[#6b4b1f] mb-5">
+              <h2 className="text-[22px] font-semibold text-[#b48a2c] mb-5">
                 Order Summary
               </h2>
 
@@ -207,7 +205,7 @@ export default function Checkout() {
                     className="flex items-start justify-between gap-3 border-b border-[#f0eadc] pb-3"
                   >
                     <div className="flex-1">
-                      <p className="text-[15px] font-medium text-[#2f5d3a]">
+                      <p className="text-[15px] font-medium text-[#b48a2c]">
                         {item.name}
                       </p>
                       <p className="text-[13px] text-[#7c8a72]">
@@ -215,7 +213,7 @@ export default function Checkout() {
                       </p>
                     </div>
 
-                    <p className="text-[14px] font-semibold text-[#6b4b1f] whitespace-nowrap">
+                    <p className="text-[14px] font-semibold text-[#b48a2c] whitespace-nowrap">
                       {formatPrice(parsePrice(item.price))}
                     </p>
                   </div>
@@ -223,10 +221,10 @@ export default function Checkout() {
               </div>
 
               <div className="mt-5 pt-4 border-t border-[#e7dcc3] flex items-center justify-between">
-                <span className="text-[17px] font-semibold text-[#2f5d3a]">
+                <span className="text-[17px] font-semibold text-[#b48a2c]">
                   Total
                 </span>
-                <span className="text-[18px] font-bold text-[#6b4b1f]">
+                <span className="text-[18px] font-bold text-[#b48a2c]">
                   {formatPrice(totalPrice)}
                 </span>
               </div>
@@ -234,7 +232,7 @@ export default function Checkout() {
               <button
                 onClick={handlePayment}
                 disabled={loading}
-                className="mt-6 w-full rounded-xl bg-[#2f5d3a] text-white py-3.5 font-medium hover:opacity-90 transition disabled:opacity-60"
+                className="mt-6 w-full rounded-xl bg-[#2f4f2f] text-white py-3.5 font-medium hover:opacity-90 transition disabled:opacity-60"
               >
                 {loading ? "Processing..." : "Pay with Razorpay"}
               </button>
@@ -252,14 +250,14 @@ export default function Checkout() {
           border-radius: 12px;
           padding: 14px 16px;
           font-size: 14px;
-          color: #456b3d;
+          color: #2f4f2f;
           outline: none;
           background: #fffdf8;
         }
 
         .input:focus {
           border-color: #b48a2c;
-          box-shadow: 0 0 0 3px rgba(180, 138, 44, 0.12);
+          box-shadow: 0 0 0 3px rgba(107, 74, 18, 0.12);
         }
       `}</style>
     </>

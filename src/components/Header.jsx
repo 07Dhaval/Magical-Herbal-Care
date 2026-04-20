@@ -16,8 +16,7 @@ export default function Header() {
     };
 
     const updateCartCount = () => {
-      const cartItems =
-        JSON.parse(localStorage.getItem("cartItems")) || [];
+      const cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
       setCartCount(cartItems.length);
     };
 
@@ -36,8 +35,6 @@ export default function Header() {
   return (
     <header className="w-full bg-[#f6f6f3] shadow-sm border-b border-[#e5e5dc]">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-
-        {/* Logo */}
         <div className="flex items-center gap-2">
           <Link to="/">
             <img
@@ -48,19 +45,24 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-12 text-[16px] font-medium text-[#2f4f2f]">
-          <Link to="/" className="hover:text-[#b48a2c] transition">Home</Link>
-          <Link to="/shop" className="hover:text-[#b48a2c] transition">Shop</Link>
-          <Link to="/about" className="hover:text-[#b48a2c] transition">About Us</Link>
-          <Link to="/contact" className="hover:text-[#b48a2c] transition">Contact</Link>
+          <Link to="/" className="hover:text-[#b48a2c] transition">
+            Home
+          </Link>
+          <Link to="/shop" className="hover:text-[#b48a2c] transition">
+            Shop
+          </Link>
+          <Link to="/about" className="hover:text-[#b48a2c] transition">
+            About Us
+          </Link>
+          <Link to="/contact" className="hover:text-[#b48a2c] transition">
+            Contact
+          </Link>
         </nav>
 
-        {/* Right Icons */}
         <div className="flex items-center gap-5 text-[#2f4f2f]">
           <Search className="cursor-pointer hover:text-[#b48a2c]" size={20} />
 
-          {/* Wishlist */}
           <Link to="/wishlist" className="relative">
             <Heart className="cursor-pointer hover:text-[#b48a2c]" size={20} />
             {wishlistCount > 0 && (
@@ -70,9 +72,11 @@ export default function Header() {
             )}
           </Link>
 
-          {/* Cart */}
           <Link to="/cart" className="relative">
-            <ShoppingCart className="cursor-pointer hover:text-[#b48a2c]" size={20} />
+            <ShoppingCart
+              className="cursor-pointer hover:text-[#b48a2c]"
+              size={20}
+            />
             {cartCount > 0 && (
               <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[#2f4f2f] text-white text-[10px] flex items-center justify-center">
                 {cartCount}
@@ -80,9 +84,8 @@ export default function Header() {
             )}
           </Link>
 
-          {/* WhatsApp */}
           <a
-            href="https://wa.me/919999999999"
+            href="https://wa.me/917042779784"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-[#2f4f2f] hover:bg-[#3f6b3f] text-white px-3 py-2 rounded-full transition"
@@ -91,7 +94,6 @@ export default function Header() {
             <span className="hidden sm:inline text-[13px]">Enquiry</span>
           </a>
 
-          {/* Mobile Menu */}
           <Menu
             className="md:hidden cursor-pointer text-[#2f4f2f]"
             size={22}
@@ -100,16 +102,27 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenu && (
         <div className="md:hidden bg-[#f6f6f3] border-t border-[#e5e5dc] px-6 pb-4">
           <nav className="flex flex-col gap-4 text-[#2f4f2f] font-medium">
-            <Link to="/" onClick={() => setMobileMenu(false)}>Home</Link>
-            <Link to="/shop" onClick={() => setMobileMenu(false)}>Shop</Link>
-            <Link to="/about" onClick={() => setMobileMenu(false)}>About Us</Link>
-            <Link to="/contact" onClick={() => setMobileMenu(false)}>Contact</Link>
-            <Link to="/wishlist" onClick={() => setMobileMenu(false)}>Wishlist</Link>
-            <Link to="/cart" onClick={() => setMobileMenu(false)}>Cart</Link>
+            <Link to="/" onClick={() => setMobileMenu(false)}>
+              Home
+            </Link>
+            <Link to="/shop" onClick={() => setMobileMenu(false)}>
+              Shop
+            </Link>
+            <Link to="/about" onClick={() => setMobileMenu(false)}>
+              About Us
+            </Link>
+            <Link to="/contact" onClick={() => setMobileMenu(false)}>
+              Contact
+            </Link>
+            <Link to="/wishlist" onClick={() => setMobileMenu(false)}>
+              Wishlist
+            </Link>
+            <Link to="/cart" onClick={() => setMobileMenu(false)}>
+              Cart
+            </Link>
           </nav>
         </div>
       )}

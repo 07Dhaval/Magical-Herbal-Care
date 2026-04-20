@@ -42,14 +42,14 @@ export default function Wishlist() {
     <>
       <Header />
 
-      <section className="bg-[#f3f3f3] min-h-screen pt-10 pb-28">
+      <section className="bg-[#f8f4ea] min-h-screen pt-10 pb-28">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
-          <h1 className="text-[36px] sm:text-[48px] text-center font-semibold text-[#1d2d5a] mb-10">
+          <h1 className="text-[36px] sm:text-[48px] text-center font-semibold text-[#b48a2c] mb-10">
             Your Wishlist
           </h1>
 
           {wishlistItems.length === 0 ? (
-            <p className="text-[#666] text-[16px] text-center">
+            <p className="text-[#2f4f2f] text-[16px] text-center">
               Your wishlist is empty.
             </p>
           ) : (
@@ -57,7 +57,7 @@ export default function Wishlist() {
               {wishlistItems.map((item) => (
                 <div
                   key={item.id}
-                  className="w-[260px] bg-white rounded-[14px] border border-[#ececec] shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden"
+                  className="w-[260px] bg-white rounded-[14px] border border-[#e7dcc3] shadow-sm overflow-hidden"
                 >
                   <div className="w-full h-[250px] bg-white flex items-center justify-center overflow-hidden">
                     <img
@@ -68,30 +68,30 @@ export default function Wishlist() {
                   </div>
 
                   <div className="px-4 pt-4 pb-3">
-                    <h3 className="text-[18px] leading-[1.25] font-semibold text-[#22304f]">
+                    <h3 className="text-[18px] leading-[1.25] font-semibold text-[#b48a2c]">
                       {item.name}
                     </h3>
 
-                    <p className="mt-1 text-[14px] text-[#7a7a7a]">
+                    <p className="mt-1 text-[14px] text-[#2f4f2f]">
                       {item.category}
                     </p>
 
-                    <p className="mt-3 text-[18px] leading-none font-semibold text-[#22304f]">
+                    <p className="mt-3 text-[18px] leading-none font-semibold text-[#2f4f2f]">
                       {item.price}
                     </p>
                   </div>
 
-                  <div className="px-4 py-3 border-t border-[#ececec] flex items-center justify-between">
+                  <div className="px-4 py-3 border-t border-[#e7dcc3] flex items-center justify-between">
                     <button
                       onClick={() => addToCart(item)}
-                      className="bg-[#193464] hover:opacity-90 transition text-white text-[13px] font-medium px-5 py-2.5 rounded-[8px] flex items-center gap-2"
+                      className="bg-[#2f4f2f] hover:opacity-90 transition text-white text-[13px] font-medium px-5 py-2.5 rounded-[8px] flex items-center gap-2"
                     >
-                        Add to Cart <ShoppingCart size={16} />
+                      Add to Cart <ShoppingCart size={16} />
                     </button>
-                      
+
                     <button
                       onClick={() => removeFromWishlist(item.id)}
-                      className="text-[#d65a5a] text-[16px] font-medium"
+                      className="text-[#b23a3a] text-[16px] font-medium"
                     >
                       Remove
                     </button>

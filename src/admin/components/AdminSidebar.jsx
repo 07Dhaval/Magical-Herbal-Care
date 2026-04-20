@@ -25,7 +25,7 @@ export default function AdminSidebar() {
             to={item.path}
             className={`block px-4 py-3 rounded-xl transition ${
               location.pathname === item.path
-                ? "bg-[#6b4b1f]"
+                ? "bg-[#b48a2c]"
                 : "hover:bg-white/10"
             }`}
           >
@@ -36,7 +36,7 @@ export default function AdminSidebar() {
 
       <button
         onClick={handleLogout}
-        className="mt-10 w-full bg-[#6b4b1f] hover:bg-[#8a6230] px-4 py-3 rounded-xl transition"
+        className="mt-10 w-full bg-[#b48a2c] hover:bg-[#b7a170] px-4 py-3 rounded-xl transition"
       >
         Logout
       </button>

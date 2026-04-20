@@ -48,13 +48,13 @@ function ProductCard({ item }) {
         {item.category}
       </p>
 
-      <h3 className="mt-1 text-[15px] sm:text-[16px] text-[#2f5d3a] font-medium">
+      <h3 className="mt-1 text-[15px] sm:text-[16px] text-[#2f4f2f] font-medium">
         {item.name}
       </h3>
 
       <div className="mt-1 text-[#b48a2c] text-sm tracking-[2px]">★★★★★</div>
 
-      <p className="mt-1 font-medium text-[#6b4b1f]">{item.price}</p>
+      <p className="mt-1 font-medium text-[#b48a2c]">{item.price}</p>
     </div>
   );
 }
@@ -65,7 +65,7 @@ export default function HomePage2() {
       <section className="py-14 bg-[#f6f3eb]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="text-center">
-            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#6b4b1f]">
+            <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
               Top Offers
             </h2>
 
@@ -89,7 +89,7 @@ export default function HomePage2() {
               <img src="/a.png" alt="Authentic" className="w-[160px]" />
             </div>
 
-            <h2 className="font-serif text-[36px] text-[#6b4b1f]">
+            <h2 className="font-serif text-[36px] text-[#b48a2c]">
               Make You’re Unique
             </h2>
 
@@ -98,7 +98,7 @@ export default function HomePage2() {
             </p>
 
             <Link to="/shop">
-              <button className="mt-8 bg-[#2f5d3a] hover:bg-[#6b4b1f] text-white font-semibold px-7 py-3 rounded-full uppercase tracking-wide transition">
+              <button className="mt-8 bg-[#2f4f2f] hover:bg-[#b48a2c] text-white font-semibold px-7 py-3 rounded-full uppercase tracking-wide transition">
                 Explore Now
               </button>
             </Link>
