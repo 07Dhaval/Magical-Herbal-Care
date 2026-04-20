@@ -1,113 +1,45 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 
 const allProducts = [
   {
     id: 1,
-    name: "Dhup Con",
-    category: "Home Care",
-    image: "/home_care.png",
-    price: "MRP Rs. 145.00",
-    description: [
-      "Natural fragrance product crafted for a calm and refreshing home atmosphere.",
-      "Made with quality ingredients for long-lasting aroma and daily use.",
-      "Perfect for creating a soothing and premium experience in your space.",
-      "Easy to use and ideal for regular home care needs.",
-    ],
+    name: "Magical Herbal Hair Oil (Sun-Infused)",
+    category: "Hair Care",
+    image: "/m1.png",
+    images: ["/m1.png", "/m2.png", "/m3.png"],
+    price: "MRP Rs. 580.00",
+    description: {
+      intro:
+        "This is a unique handcrafted herbal oil made using a blend of powerful traditional ingredients, naturally infused under sunlight for 25 days to enhance its potency and effectiveness.",
+
+      ingredients: [
+        "Bhringraj – supports hair growth & strengthens roots",
+        "Cardamom – improves scalp health & adds natural freshness",
+        "Walnut – rich in nutrients for stronger, healthier hair",
+        "Kalonji (Black Seed) – reduces hair fall & promotes regrowth",
+        "Fenugreek (Methi) – adds shine & helps control dandruff",
+      ],
+
+      process:
+        "The oil is slowly sun-infused for 25 days, allowing the herbs to release their full benefits naturally without any chemicals or artificial processing.",
+
+      benefits: [
+        "Helps reduce hair fall",
+        "Supports natural hair growth",
+        "Improves thickness & strength",
+        "Nourishes scalp deeply",
+        "Adds natural shine and softness",
+      ],
+
+      note:
+        "This product is 100% natural, chemical-free, and handmade in small batches with proper care.",
+
+      suitable: "Suitable for all hair types.",
+    },
   },
-  {
-    id: 2,
-    name: "Premium Tea",
-    category: "Home Care",
-    image: "/home1_care.png",
-    price: "MRP Rs. 220.00",
-    description: [
-      "Premium tea blend with rich taste and refreshing aroma.",
-      "Carefully selected ingredients for a smooth and comforting experience.",
-      "Ideal for daily enjoyment with family and guests.",
-      "A premium addition to your home essentials collection.",
-    ],
-  },
-  {
-    id: 3,
-    name: "Bath Soap Combo",
-    category: "Home Care",
-    image: "/home2_care.png",
-    price: "MRP Rs. 199.00",
-    description: [
-      "Bath soap combo designed for gentle cleansing and freshness.",
-      "Helps maintain soft and healthy-feeling skin after every wash.",
-      "Made for regular family use with a premium quality finish.",
-      "Suitable for daily care and personal hygiene.",
-    ],
-  },
-  {
-    id: 4,
-    name: "Senetary Nepkin",
-    category: "Home Care",
-    image: "/home3_care.png",
-    price: "MRP Rs. 125.00",
-    description: [
-      "Comfortable and reliable sanitary care product for everyday use.",
-      "Designed for softness, protection, and confidence throughout the day.",
-      "Made with care for better hygiene and comfort.",
-      "A practical and essential home care product.",
-    ],
-  },
-  {
-    id: 5,
-    name: "Fiber Fit",
-    category: "Home Care",
-    image: "/home4_care.png",
-    price: "MRP Rs. 320.00",
-    description: [
-      "Fiber supplement product made to support daily wellness routines.",
-      "Easy to include in a balanced lifestyle and health-conscious routine.",
-      "Premium quality formula for regular use.",
-      "A simple way to add more care to your daily essentials.",
-    ],
-  },
-  {
-    id: 6,
-    name: "Hairfall Kit",
-    category: "Home Care",
-    image: "/home5_care.png",
-    price: "MRP Rs. 499.00",
-    description: [
-      "Hairfall care kit created to support stronger and healthier-looking hair.",
-      "Includes essential care benefits for regular hair maintenance.",
-      "Designed for a simple and effective home care routine.",
-      "Ideal for people looking for complete hair care support.",
-    ],
-  },
-  {
-    id: 7,
-    name: "Hair Shampoo",
-    category: "Home Care",
-    image: "/home6_care.png",
-    price: "MRP Rs. 189.00",
-    description: [
-      "Hair shampoo for deep cleansing and refreshing scalp care.",
-      "Helps remove buildup while keeping hair feeling fresh and soft.",
-      "Suitable for regular use in your daily hair care routine.",
-      "A premium personal care essential for every home.",
-    ],
-  },
-  {
-    id: 8,
-    name: "Hair Conditioner",
-    category: "Home Care",
-    image: "/home7_care.png",
-    price: "MRP Rs. 210.00",
-    description: [
-      "Hair conditioner designed to smooth and soften hair after washing.",
-      "Helps improve manageability and overall hair feel.",
-      "A perfect companion to your shampoo for complete hair care.",
-      "Made for simple, effective, and premium daily use.",
-    ],
-  },
-];
+  ];
 
 export default function ProductDetails() {
   const location = useLocation();
@@ -119,19 +51,23 @@ export default function ProductDetails() {
     allProducts.find((item) => item.id === Number(id)) ||
     allProducts[0];
 
-  const productImages = [
-    product.image,
-    product.image,
-    product.image,
-    product.image,
-  ];
+  const productImages = useMemo(() => {
+    if (product.images && product.images.length > 0) return product.images;
+    return [product.image];
+  }, [product]);
+
+  const [selectedImage, setSelectedImage] = useState(productImages[0]);
+
+  React.useEffect(() => {
+    setSelectedImage(productImages[0]);
+  }, [productImages]);
 
   const handleAddToWishlist = () => {
     const existingWishlist =
       JSON.parse(localStorage.getItem("wishlistItems")) || [];
 
     const alreadyExists = existingWishlist.some(
-      (item) => item.id === product.id,
+      (item) => item.id === product.id
     );
 
     if (!alreadyExists) {
@@ -170,7 +106,7 @@ export default function ProductDetails() {
               </span>
 
               <img
-                src={product.image}
+                src={selectedImage}
                 alt={product.name}
                 className="w-full h-[400px] sm:h-[520px] lg:h-[620px] object-contain"
               />
@@ -178,16 +114,22 @@ export default function ProductDetails() {
 
             <div className="mt-4 flex gap-3 overflow-x-auto">
               {productImages.map((img, index) => (
-                <div
+                <button
                   key={index}
-                  className="min-w-[110px] sm:min-w-[130px] h-[100px] sm:h-[120px] border border-[#e7dcc3] bg-white flex items-center justify-center overflow-hidden rounded-[12px]"
+                  type="button"
+                  onClick={() => setSelectedImage(img)}
+                  className={`min-w-[110px] sm:min-w-[130px] h-[100px] sm:h-[120px] border bg-white flex items-center justify-center overflow-hidden rounded-[12px] transition ${
+                    selectedImage === img
+                      ? "border-[#b48a2c] ring-2 ring-[#b48a2c]/20"
+                      : "border-[#e7dcc3]"
+                  }`}
                 >
                   <img
                     src={img}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-contain"
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -212,15 +154,70 @@ export default function ProductDetails() {
               {product.price}
             </p>
 
-            <ul className="mt-5 space-y-2 text-[15px] sm:text-[16px] text-[#555] leading-8 list-disc pl-5">
-              {product.description.map((point, index) => (
-                <li key={index}>{point}</li>
-              ))}
-            </ul>
+            {Array.isArray(product.description) ? (
+              <ul className="mt-5 space-y-2 text-[15px] sm:text-[16px] text-[#555] leading-8 list-disc pl-5">
+                {product.description.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
+                {product.description?.intro && (
+                  <p className="mb-4">{product.description.intro}</p>
+                )}
+
+                {product.description?.ingredients && (
+                  <div className="mb-5">
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">
+                      Key Ingredients
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {product.description.ingredients.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {product.description?.process && (
+                  <div className="mb-5">
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">
+                      Process
+                    </h3>
+                    <p>{product.description.process}</p>
+                  </div>
+                )}
+
+                {product.description?.benefits && (
+                  <div className="mb-5">
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">
+                      Benefits
+                    </h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {product.description.benefits.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {product.description?.note && (
+                  <p className="mt-4 font-medium text-[#2f4f2f]">
+                    {product.description.note}
+                  </p>
+                )}
+
+                {product.description?.suitable && (
+                  <p className="mt-2 text-[#2f4f2f]">
+                    {product.description.suitable}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="mt-4">
               <button className="border border-[#e7dcc3] bg-white text-[#b48a2c] text-[13px] px-6 py-3 rounded-full">
-                500 GM
+                200 ML
               </button>
             </div>
 

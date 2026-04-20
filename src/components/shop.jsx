@@ -4,44 +4,41 @@ import { Link } from "react-router-dom";
 const shopProducts = [
   {
     id: 1,
-    name: "Magical Herbal Care",
-    category: "Hari Care",
-    image: "/magicalherbalcare_logo.jpeg",
-    price: "MRP Rs. 249.00",
-    description: [
-      "Freshiya Premium Hair Fall Shampoo is designed to help reduce hair fall and support healthier-looking hair.",
-      "Made for silky and conditioning care, suitable for all hair types.",
-      "Its nourishing formula helps cleanse the scalp while keeping hair soft and manageable.",
-      "A daily-use hair care essential for stronger, smoother, and refreshed hair.",
-    ],
+    name: "Magical Herbal Hair Oil (Sun-Infused)",
+    category: "Hair Care",
+    image: "/m1.png",
+    images: ["/m1.png", "/m2.png", "/m3.png"],
+    price: "MRP Rs. 580.00",
+    description: {
+      intro:
+        "This is a unique handcrafted herbal oil made using a blend of powerful traditional ingredients, naturally infused under sunlight for 25 days to enhance its potency and effectiveness.",
+
+      ingredients: [
+        "Bhringraj – supports hair growth & strengthens roots",
+        "Cardamom – improves scalp health & adds natural freshness",
+        "Walnut – rich in nutrients for stronger, healthier hair",
+        "Kalonji (Black Seed) – reduces hair fall & promotes regrowth",
+        "Fenugreek (Methi) – adds shine & helps control dandruff",
+      ],
+
+      process:
+        "The oil is slowly sun-infused for 25 days, allowing the herbs to release their full benefits naturally without any chemicals or artificial processing.",
+
+      benefits: [
+        "Helps reduce hair fall",
+        "Supports natural hair growth",
+        "Improves thickness & strength",
+        "Nourishes scalp deeply",
+        "Adds natural shine and softness",
+      ],
+
+      note:
+        "This product is 100% natural, chemical-free, and handmade in small batches with proper care.",
+
+      suitable: "Suitable for all hair types.",
+    },
   },
-  {
-    id: 2,
-    name: "Vitamin C+ Niacinamide Brightening Face Wash",
-    category: "Skin Care",
-    image: "/s1.jpeg",
-    price: "MRP Rs. 199.00",
-    description: [
-      "A premium brightening face wash enriched with Vitamin C+ and Niacinamide for radiant-looking skin.",
-      "Helps remove impurities and supports a fresh, clean, and glowing appearance.",
-      "Designed for all skin types with a gentle yet effective cleansing experience.",
-      "A refreshing skincare essential for daily brightening and healthy-looking skin.",
-    ],
-  },
-  {
-    id: 3,
-    name: "Celebrity Choose Sanitary Napkin",
-    category: "Personal Care",
-    image: "/s2.jpeg",
-    price: "MRP Rs. 149.00",
-    description: [
-      "Freshiya ultra-thin sanitary napkins with gel technology and anti-leak protection.",
-      "Designed for extra comfort, extra protection, and long-lasting dry feel.",
-      "Soft, skin-friendly, and made for day and night confidence.",
-      "A reliable personal care product created for hygiene, comfort, and protection.",
-    ],
-  },
-];
+  ];
 
 function ShopCard({ item }) {
   return (

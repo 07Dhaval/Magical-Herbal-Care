@@ -1,55 +1,37 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const sellingProducts = [
   {
     id: 1,
     category: "Hair Care",
     name: "Hair Fall Shampoo",
-    price: "₹249.00",
-    image: "/s8.jpeg",
+    price: "580.00",
+    image: "/m2.png",
   },
   {
     id: 2,
-    category: "Skin Care",
-    name: "Vitamin C Face Wash",
-    price: "₹199.00",
-    image: "/s1.jpeg",
+    category: "Hair Care",
+    name: "Hair Fall Shampoo",
+    price: "580.00",
+    image: "/m1.png",
   },
-  // {
-  //   id: 3,
-  //   category: "Personal Care",
-  //   name: "Sanitary Napkin",
-  //   price: "₹149.00",
-  //   image: "/s2.jpeg",
-  // },
-  // {
-  //   id: 4,
-  //   category: "Combo Pack",
-  //   name: "Premium Essentials Combo",
-  //   price: "₹899.00",
-  //   image: "/s3.jpeg",
-  // },
 ];
 
-const followImages = [
-  // "/s1.jpeg",
-  // "/s2.jpeg",
-  // "/s3.jpeg",
-  // "/s4.jpeg",
-  // "/s5.jpeg",
-  // "/s6.jpeg",
-];
+const followImages = ["/m1.png", "/m2.png"];
 
 function ProductCard({ item }) {
   return (
-    <div className="text-center">
-      <div className="overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[20px] shadow-sm flex items-center justify-center">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-auto object-contain"
-        />
-      </div>
+    <div className="text-center flex flex-col items-center">
+      <Link to={`/product/${item.id}`} className="w-full flex justify-center">
+        <div className="overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[20px] shadow-sm flex items-center justify-center w-full max-w-[260px]">
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-full h-auto object-contain mx-auto"
+          />
+        </div>
+      </Link>
 
       <p className="mt-4 text-xs text-[#9a7b2f] uppercase tracking-[1.2px]">
         {item.category}
@@ -68,6 +50,8 @@ export default function HomePage3() {
     <div>
       <section className="py-14 bg-[#f7f3e8]">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+          
+          {/* TOP SELLING */}
           <div className="text-center">
             <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
               Top Selling
@@ -77,14 +61,18 @@ export default function HomePage3() {
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4 items-start">
+          {/* ✅ CENTERED PRODUCTS */}
+          <div className="mt-10 flex flex-wrap justify-center gap-6 lg:gap-4">
             {sellingProducts.map((item) => (
-              <ProductCard key={item.id} item={item} />
+              <div key={item.id} className="w-full sm:w-[260px] flex justify-center">
+                <ProductCard item={item} />
+              </div>
             ))}
           </div>
 
           <div className="mt-16 border-t border-[#dccfa9]" />
 
+          {/* FOLLOW US */}
           <div className="pt-14">
             <div className="text-center">
               <h2 className="font-serif text-[30px] sm:text-[36px] text-[#b48a2c]">
@@ -95,11 +83,12 @@ export default function HomePage3() {
               </p>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 items-start">
+            {/* ✅ CENTERED FOLLOW IMAGES */}
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
               {followImages.map((img, index) => (
                 <div
                   key={index}
-                  className="overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[18px] shadow-sm flex items-center justify-center"
+                  className="w-[48%] sm:w-[180px] overflow-hidden bg-[#fffef9] border border-[#e4d8b4] rounded-[18px] shadow-sm flex items-center justify-center"
                 >
                   <img
                     src={img}
@@ -109,6 +98,7 @@ export default function HomePage3() {
                 </div>
               ))}
             </div>
+
           </div>
         </div>
       </section>

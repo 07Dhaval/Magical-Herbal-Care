@@ -1,5 +1,5 @@
 import React from "react";
-import s3 from "../assets/hand.png";
+import s3 from "../assets/m2.png";
 import { Link } from "react-router-dom";
 
 const offerProducts = [
@@ -7,42 +7,30 @@ const offerProducts = [
     id: 1,
     category: "Hair Care",
     name: "Hair Fall Shampoo",
-    price: "MRP Rs. 249.00",
-    image: "/s8.jpeg",
+    price: "MRP Rs. 580.00",
+    image: "/m2.png",
   },
   {
     id: 2,
-    category: "Skin Care",
-    name: "Vitamin C+ Face Wash",
-    price: "MRP Rs. 199.00",
-    image: "/s1.jpeg",
+    category: "Hair Care",
+    name: "Hair Fall Shampoo",
+    price: "MRP Rs. 580.00",
+    image: "/m1.png",
   },
-  // {
-  //   id: 3,
-  //   category: "Personal Care",
-  //   name: "Sanitary Napkin",
-  //   price: "MRP Rs. 149.00",
-  //   image: "/s2.jpeg",
-  // },
-  // {
-  //   id: 4,
-  //   category: "Combo Pack",
-  //   name: "Premium Essentials Combo",
-  //   price: "MRP Rs. 899.00",
-  //   image: "/s3.jpeg",
-  // },
 ];
 
 function ProductCard({ item }) {
   return (
     <div className="text-center flex flex-col items-center">
-      <div className="bg-[#fffdf7] border border-[#e7dcc3] rounded-[20px] shadow-sm flex items-center justify-center p-3 max-w-[260px] w-full">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-auto object-contain"
-        />
-      </div>
+      <Link to={`/product/${item.id}`} className="w-full flex justify-center">
+        <div className="bg-[#fffdf7] border border-[#e7dcc3] rounded-[20px] shadow-sm flex items-center justify-center p-3 max-w-[260px] w-full">
+          <img
+            src={item.image}
+            alt={item.name}
+            className="w-full h-auto object-contain mx-auto"
+          />
+        </div>
+      </Link>
 
       <p className="mt-4 text-xs text-[#8b6b2f] uppercase tracking-[1.5px]">
         {item.category}
@@ -74,9 +62,11 @@ export default function HomePage2() {
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
+          <div className="mt-10 flex flex-wrap justify-center gap-6 lg:gap-8">
             {offerProducts.map((item) => (
-              <ProductCard key={item.id} item={item} />
+              <div key={item.id} className="w-full sm:w-[260px] flex justify-center">
+                <ProductCard item={item} />
+              </div>
             ))}
           </div>
         </div>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import s3 from "../assets/hand.png";
+import s3 from "../assets/m1.png";
+import s2 from "../assets/m2.png";
+import s1 from "../assets/m3.png";
 import { Link } from "react-router-dom";
 
 const heroSlides = [
@@ -13,7 +15,7 @@ const heroSlides = [
       </>
     ),
     desc: "Your Health must be taken care of every day.",
-    image: s3,
+    image: s2,
   },
   {
     id: 2,
@@ -37,7 +39,7 @@ const heroSlides = [
       </>
     ),
     desc: "Premium care products for your daily healthy lifestyle.",
-    image: s3,
+    image: s1,
   },
 ];
 
@@ -45,28 +47,13 @@ const categories = [
   {
     id: 1,
     name: "Hair Fall Shampoo",
-    image: "/s8.jpeg",
+    image: "/m2.png",
   },
   {
     id: 2,
-    name: "Vitamin C+ Face Wash",
-    image: "/s1.jpeg",
+    name: "Hair Fall Shampoo",
+    image: "/m1.png",
   },
-  // {
-  //   id: 3,
-  //   name: "Sanitary Napkin",
-  //   image: "/s2.jpeg",
-  // },
-  // {
-  //   id: 4,
-  //   name: "Premium Essentials Combo",
-  //   image: "/s3.jpeg",
-  // },
-  // {
-  //   id: 5,
-  //   name: "Premium Tea",
-  //   image: "/s4.jpeg",
-  // },
 ];
 
 export default function HomePage1() {
@@ -153,16 +140,18 @@ export default function HomePage1() {
             </p>
           </div>
 
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-5 items-start">
+          <div className="mt-10 flex flex-wrap justify-center gap-4 sm:gap-5">
             {categories.map((item) => (
-              <div key={item.id} className="text-center">
-                <div className="overflow-hidden bg-[#fffdf8] border border-[#e7dcc3] shadow-sm rounded-[18px] flex items-center justify-center p-2 transition hover:shadow-md">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-auto object-contain"
-                  />
-                </div>
+              <div key={item.id} className="text-center w-[calc(50%-8px)] sm:w-[220px]">
+                <Link to={`/product/${item.id}`}>
+                  <div className="overflow-hidden bg-[#fffdf8] border border-[#e7dcc3] shadow-sm rounded-[18px] flex items-center justify-center p-2 transition hover:shadow-md">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-auto object-contain mx-auto"
+                    />
+                  </div>
+                </Link>
 
                 <h3 className="mt-4 text-[16px] sm:text-[18px] font-medium text-[#2f4f2f]">
                   {item.name}
