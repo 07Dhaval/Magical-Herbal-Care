@@ -6,14 +6,14 @@ const offerProducts = [
   {
     id: 1,
     category: "Hair Care",
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     price: "MRP Rs. 580.00",
     image: "/m2.png",
   },
   {
     id: 2,
     category: "Hair Care",
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     price: "MRP Rs. 580.00",
     image: "/m1.png",
   },

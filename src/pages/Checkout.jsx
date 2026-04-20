@@ -17,10 +17,8 @@ export default function Checkout() {
   });
 
   useEffect(() => {
-    const buyNowItem =
-      JSON.parse(localStorage.getItem("buyNowItem")) || null;
-    const cartItems =
-      JSON.parse(localStorage.getItem("cartItems")) || [];
+    const buyNowItem = JSON.parse(localStorage.getItem("buyNowItem")) || null;
+    const cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
 
     if (buyNowItem && buyNowItem.length > 0) {
       setCheckoutItems(buyNowItem);
@@ -72,6 +70,7 @@ export default function Checkout() {
 
   const handlePayment = async () => {
     if (!validateForm()) return;
+
     if (checkoutItems.length === 0) {
       alert("No items found for checkout.");
       return;
@@ -79,6 +78,10 @@ export default function Checkout() {
 
     try {
       setLoading(true);
+
+      if (!window.Razorpay) {
+        throw new Error("Razorpay SDK failed to load.");
+      }
 
       const orderRes = await fetch("http://localhost:5000/api/create-order", {
         method: "POST",
@@ -90,16 +93,23 @@ export default function Checkout() {
         }),
       });
 
-      const orderData = await orderRes.json();
+      let orderData;
+      try {
+        orderData = await orderRes.json();
+      } catch {
+        throw new Error("Backend is not returning valid JSON.");
+      }
 
-      if (!orderData.success) {
-        alert("Failed to create Razorpay order.");
-        setLoading(false);
-        return;
+      if (!orderRes.ok) {
+        throw new Error(orderData?.message || `Backend error: ${orderRes.status}`);
+      }
+
+      if (!orderData.success || !orderData.order) {
+        throw new Error(orderData?.message || "Failed to create Razorpay order.");
       }
 
       const options = {
-        key: "rzp_test_your_key_id",
+        key: "YOUR_NEW_LIVE_KEY_ID",
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Magical Herbal Care",
@@ -107,29 +117,39 @@ export default function Checkout() {
         image: "/magicalherbalcare_logo.jpeg",
         order_id: orderData.order.id,
         handler: async function (response) {
-          const saveRes = await fetch("http://localhost:5000/api/payment-success", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              ...response,
-              customer: formData,
-              items: checkoutItems,
-              total: totalPrice,
-            }),
-          });
+          try {
+            const saveRes = await fetch("http://localhost:5000/api/payment-success", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ...response,
+                customer: formData,
+                items: checkoutItems,
+                total: totalPrice,
+              }),
+            });
 
-          const saveData = await saveRes.json();
+            let saveData;
+            try {
+              saveData = await saveRes.json();
+            } catch {
+              throw new Error("Payment save response is not valid JSON.");
+            }
 
-          if (saveData.success) {
-            localStorage.removeItem("buyNowItem");
-            localStorage.removeItem("cartItems");
-            window.dispatchEvent(new Event("cartUpdated"));
-            alert("Payment successful!");
-            window.location.href = "/order-success";
-          } else {
-            alert("Payment succeeded but order saving failed.");
+            if (saveRes.ok && saveData.success) {
+              localStorage.removeItem("buyNowItem");
+              localStorage.removeItem("cartItems");
+              window.dispatchEvent(new Event("cartUpdated"));
+              alert("Payment successful!");
+              window.location.href = "/order-success";
+            } else {
+              alert(saveData.message || "Payment succeeded but order saving failed.");
+            }
+          } catch (error) {
+            console.error("Payment save error:", error);
+            alert(error.message || "Payment succeeded, but saving order failed.");
           }
         },
         prefill: {
@@ -141,15 +161,27 @@ export default function Checkout() {
           address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
         },
         theme: {
-          color: "#2f4f2f", // herbal green
+          color: "#2f4f2f",
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
         },
       };
 
       const razorpay = new window.Razorpay(options);
+
+      razorpay.on("payment.failed", function (response) {
+        console.error("Razorpay payment failed:", response.error);
+        alert(response.error?.description || "Payment failed.");
+        setLoading(false);
+      });
+
       razorpay.open();
     } catch (error) {
-      console.error(error);
-      alert("Something went wrong while starting payment.");
+      console.error("Payment start error:", error);
+      alert(error.message || "Something went wrong while starting payment.");
     } finally {
       setLoading(false);
     }
@@ -166,8 +198,6 @@ export default function Checkout() {
           </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10">
-            
-            {/* FORM */}
             <div className="bg-white rounded-2xl border border-[#e7dcc3] shadow-sm p-5 sm:p-7">
               <h2 className="text-[22px] font-semibold text-[#b48a2c] mb-6">
                 Billing Details
@@ -192,7 +222,6 @@ export default function Checkout() {
               />
             </div>
 
-            {/* SUMMARY */}
             <div className="bg-white rounded-2xl border border-[#e7dcc3] shadow-sm p-5 sm:p-6 h-fit sticky top-24">
               <h2 className="text-[22px] font-semibold text-[#b48a2c] mb-5">
                 Order Summary

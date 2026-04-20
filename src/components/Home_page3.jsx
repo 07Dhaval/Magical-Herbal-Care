@@ -5,14 +5,14 @@ const sellingProducts = [
   {
     id: 1,
     category: "Hair Care",
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     price: "580.00",
     image: "/m2.png",
   },
   {
     id: 2,
     category: "Hair Care",
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     price: "580.00",
     image: "/m1.png",
   },

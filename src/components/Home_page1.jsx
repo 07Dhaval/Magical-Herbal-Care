@@ -46,12 +46,12 @@ const heroSlides = [
 const categories = [
   {
     id: 1,
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     image: "/m2.png",
   },
   {
     id: 2,
-    name: "Hair Fall Shampoo",
+    name: "Magical Herbal Hair Oil",
     image: "/m1.png",
   },
 ];
