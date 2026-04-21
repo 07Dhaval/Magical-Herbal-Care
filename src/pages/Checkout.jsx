@@ -109,7 +109,7 @@ export default function Checkout() {
       }
 
       const options = {
-        key: "YOUR_NEW_LIVE_KEY_ID",
+        key: "rzp_live_SZhi4zjOq4ilQQ",
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Magical Herbal Care",
@@ -174,7 +174,12 @@ export default function Checkout() {
 
       razorpay.on("payment.failed", function (response) {
         console.error("Razorpay payment failed:", response.error);
-        alert(response.error?.description || "Payment failed.");
+        alert(
+          response.error?.description ||
+            response.error?.reason ||
+            response.error?.code ||
+            "Payment failed."
+        );
         setLoading(false);
       });
 
@@ -204,12 +209,48 @@ export default function Checkout() {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className="input" />
-                <input name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className="input" />
-                <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" className="input" />
-                <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="input" />
-                <input name="state" value={formData.state} onChange={handleChange} placeholder="State" className="input" />
-                <input name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Pincode" className="input" />
+                <input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Full Name"
+                  className="input"
+                />
+                <input
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Email Address"
+                  className="input"
+                />
+                <input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Phone Number"
+                  className="input"
+                />
+                <input
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="City"
+                  className="input"
+                />
+                <input
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="State"
+                  className="input"
+                />
+                <input
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  placeholder="Pincode"
+                  className="input"
+                />
               </div>
 
               <textarea
@@ -272,7 +313,7 @@ export default function Checkout() {
 
       <Footer />
 
-      <style jsx>{`
+      <style>{`
         .input {
           width: 100%;
           border: 1px solid #e7dcc3;

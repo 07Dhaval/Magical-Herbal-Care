@@ -35,7 +35,7 @@ export default function AboutSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
           <div>
             <p className="text-[13px] uppercase tracking-[0.2em] text-[#2f4f2f] font-medium">
-              About Magical Herbal Care
+              About Magical Herbal Care by Swati Tiwari
             </p>
 
             <h1 className="mt-4 font-serif text-[34px] sm:text-[42px] lg:text-[58px] leading-[1.02] text-[#b48a2c]">
@@ -83,7 +83,7 @@ export default function AboutSection() {
             </h2>
 
             <p className="mt-5 text-[#2f4f2f] text-[15px] sm:text-[16px] leading-8">
-              Freshiya was built with a simple goal — to bring trusted products
+              Magical Herbal Care by Swati Tiwari was built with a simple goal — to bring trusted products
               into one clean and premium shopping experience. We want customers
               to discover products that feel useful, reliable, and right for
               everyday life.

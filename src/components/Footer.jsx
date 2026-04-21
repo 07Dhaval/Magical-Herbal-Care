@@ -18,7 +18,7 @@ export default function Footer() {
             </Link>
 
             <p className="mt-7 max-w-[340px] text-[15px] leading-[1.9] text-[#2f4f2f]">
-              Serving international markets with quality products. Trusted by
+              Magical Herbal Care by Swati Tiwari Serving international markets with quality products. Trusted by
               clients with a focus on care, reliability, and premium everyday
               essentials.
             </p>
@@ -85,7 +85,7 @@ export default function Footer() {
             <h3 className="footer-title">Contact Info</h3>
 
             <div className="space-y-5 text-[15px] text-[#2f4f2f]">
-              <p>Magical Herbal Care</p>
+              <p>Magical Herbal Care by Swati Tiwari</p>
               <p>info@magicalherbalcare.com</p>
               <p>+91 98765 43210</p>
               <p>India</p>

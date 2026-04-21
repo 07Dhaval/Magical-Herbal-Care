@@ -39,8 +39,9 @@ export default function ContactSection() {
           </h1>
 
           <p className="mt-4 text-[#2f4f2f] text-[15px] sm:text-[16px] max-w-[700px] mx-auto leading-8">
-            Get in touch with Magical Herbal Care for product enquiries,
-            support, and business information. We are always here to help you.
+            Get in touch with Magical Herbal Care by Swati Tiwari for product
+            enquiries, support, and business information. We are always here to
+            help you.
           </p>
         </div>
 
@@ -49,7 +50,9 @@ export default function ContactSection() {
             <h2 className="font-serif text-[28px] sm:text-[34px] text-[#b48a2c]">
               Get In Touch
             </h2>
-
+            <p className="mt-4 text-[#2f4f2f] text-[18px] sm:text-[18px] leading-8">
+              Magical Herbal Care by Swati Tiwari
+            </p>
             <p className="mt-4 text-[#2f4f2f] text-[15px] sm:text-[16px] leading-8">
               Whether you have a question about our products or need support,
               feel free to contact us anytime.
