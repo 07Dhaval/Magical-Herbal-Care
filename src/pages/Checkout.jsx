@@ -114,6 +114,8 @@ export default function Checkout() {
         throw new Error("Backend did not return Razorpay key.");
       }
 
+      console.log("Razorpay mode:", orderData.mode || "unknown");
+
       const options = {
         key: orderData.keyId,
         amount: orderData.order.amount,

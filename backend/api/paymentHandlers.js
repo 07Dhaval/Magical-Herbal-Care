@@ -8,9 +8,50 @@ function normalizeCredential(value) {
     .replace(/\s+/g, "");
 }
 
+function getCredentialSet() {
+  const liveKeyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
+  const liveKeySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
+  const testKeyId = normalizeCredential(process.env.RAZORPAY_TEST_KEY_ID);
+  const testKeySecret = normalizeCredential(process.env.RAZORPAY_TEST_KEY_SECRET);
+  const runtimeEnv = String(
+    process.env.RAZORPAY_ENV || process.env.VERCEL_ENV || process.env.NODE_ENV || ""
+  )
+    .trim()
+    .toLowerCase();
+  const shouldPreferTest =
+    runtimeEnv === "preview" || runtimeEnv === "development" || runtimeEnv === "test";
+
+  if (shouldPreferTest && testKeyId && testKeySecret) {
+    return {
+      keyId: testKeyId,
+      keySecret: testKeySecret,
+      mode: "test",
+    };
+  }
+
+  if (liveKeyId && liveKeySecret) {
+    return {
+      keyId: liveKeyId,
+      keySecret: liveKeySecret,
+      mode: "live",
+    };
+  }
+
+  if (testKeyId && testKeySecret) {
+    return {
+      keyId: testKeyId,
+      keySecret: testKeySecret,
+      mode: "test",
+    };
+  }
+
+  throw new Error(
+    "Missing Razorpay credentials. Set live keys for production and test keys for preview/development."
+  );
+}
+
 function getRazorpayClient() {
-  const keyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
-  const keySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
+  const { keyId, keySecret } = getCredentialSet();
 
   if (!keyId || !keySecret) {
     throw new Error("Missing Razorpay credentials in environment variables.");
@@ -39,10 +80,12 @@ async function createOrderHandler(req, res) {
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
+    const { keyId, mode } = getCredentialSet();
 
     return res.status(200).json({
       success: true,
-      keyId: normalizeCredential(process.env.RAZORPAY_KEY_ID),
+      keyId,
+      mode,
       order,
     });
   } catch (error) {
@@ -75,7 +118,7 @@ async function paymentSuccessHandler(req, res) {
       });
     }
 
-    const keySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
+    const { keySecret } = getCredentialSet();
     const expectedSignature = crypto
       .createHmac("sha256", keySecret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
