@@ -1,16 +1,24 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
-function getRazorpayClient() {
-  const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+function normalizeCredential(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/\s+/g, "");
+}
 
-  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+function getRazorpayClient() {
+  const keyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
+  const keySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
+
+  if (!keyId || !keySecret) {
     throw new Error("Missing Razorpay credentials in environment variables.");
   }
 
   return new Razorpay({
-    key_id: RAZORPAY_KEY_ID.trim(),
-    key_secret: RAZORPAY_KEY_SECRET,
+    key_id: keyId,
+    key_secret: keySecret,
   });
 }
 
@@ -34,7 +42,7 @@ async function createOrderHandler(req, res) {
 
     return res.status(200).json({
       success: true,
-      keyId: process.env.RAZORPAY_KEY_ID.trim(),
+      keyId: normalizeCredential(process.env.RAZORPAY_KEY_ID),
       order,
     });
   } catch (error) {
@@ -67,8 +75,9 @@ async function paymentSuccessHandler(req, res) {
       });
     }
 
+    const keySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
