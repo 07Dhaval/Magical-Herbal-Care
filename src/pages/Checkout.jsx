@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 export default function Checkout() {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -83,7 +86,7 @@ export default function Checkout() {
         throw new Error("Razorpay SDK failed to load.");
       }
 
-      const orderRes = await fetch("http://localhost:5000/api/create-order", {
+      const orderRes = await fetch(`${API_BASE_URL}/api/create-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +112,7 @@ export default function Checkout() {
       }
 
       const options = {
-        key: "rzp_live_SZhi4zjOq4ilQQ",
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Magical Herbal Care",
@@ -117,7 +120,7 @@ export default function Checkout() {
         order_id: orderData.order.id,
         handler: async function (response) {
           try {
-            const saveRes = await fetch("http://localhost:5000/api/payment-success", {
+            const saveRes = await fetch(`${API_BASE_URL}/api/payment-success`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -208,48 +211,12 @@ export default function Checkout() {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Full Name"
-                  className="input"
-                />
-                <input
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email Address"
-                  className="input"
-                />
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Phone Number"
-                  className="input"
-                />
-                <input
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="City"
-                  className="input"
-                />
-                <input
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="State"
-                  className="input"
-                />
-                <input
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  placeholder="Pincode"
-                  className="input"
-                />
+                <input name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className="input" />
+                <input name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className="input" />
+                <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" className="input" />
+                <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="input" />
+                <input name="state" value={formData.state} onChange={handleChange} placeholder="State" className="input" />
+                <input name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Pincode" className="input" />
               </div>
 
               <textarea
