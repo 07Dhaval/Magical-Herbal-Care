@@ -9,7 +9,7 @@ function getRazorpayClient() {
   }
 
   return new Razorpay({
-    key_id: RAZORPAY_KEY_ID,
+    key_id: RAZORPAY_KEY_ID.trim(),
     key_secret: RAZORPAY_KEY_SECRET,
   });
 }
@@ -34,6 +34,7 @@ async function createOrderHandler(req, res) {
 
     return res.status(200).json({
       success: true,
+      keyId: process.env.RAZORPAY_KEY_ID.trim(),
       order,
     });
   } catch (error) {

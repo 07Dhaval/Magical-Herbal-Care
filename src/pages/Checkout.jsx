@@ -3,7 +3,6 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
-const RAZORPAY_KEY_ID = (import.meta.env.VITE_RAZORPAY_KEY_ID || "").trim();
 
 export default function Checkout() {
   const [checkoutItems, setCheckoutItems] = useState([]);
@@ -86,10 +85,6 @@ export default function Checkout() {
         throw new Error("Razorpay SDK failed to load.");
       }
 
-      if (!RAZORPAY_KEY_ID) {
-        throw new Error("Missing Razorpay public key.");
-      }
-
       const orderRes = await fetch(`${API_BASE_URL}/api/create-order`, {
         method: "POST",
         headers: {
@@ -115,8 +110,12 @@ export default function Checkout() {
         throw new Error(orderData?.message || "Failed to create Razorpay order.");
       }
 
+      if (!orderData.keyId) {
+        throw new Error("Backend did not return Razorpay key.");
+      }
+
       const options = {
-        key: RAZORPAY_KEY_ID,
+        key: orderData.keyId,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: "Magical Herbal Care",
