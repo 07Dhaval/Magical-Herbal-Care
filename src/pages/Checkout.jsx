@@ -114,7 +114,6 @@ export default function Checkout() {
         currency: orderData.order.currency,
         name: "Magical Herbal Care",
         description: "Order Payment",
-        image: "/magicalherbalcare_logo.jpeg",
         order_id: orderData.order.id,
         handler: async function (response) {
           try {
