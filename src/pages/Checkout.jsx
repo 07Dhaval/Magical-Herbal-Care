@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export default function Checkout() {
   const [checkoutItems, setCheckoutItems] = useState([]);
@@ -84,6 +83,10 @@ export default function Checkout() {
 
       if (!window.Razorpay) {
         throw new Error("Razorpay SDK failed to load.");
+      }
+
+      if (!import.meta.env.VITE_RAZORPAY_KEY_ID) {
+        throw new Error("Missing Razorpay public key.");
       }
 
       const orderRes = await fetch(`${API_BASE_URL}/api/create-order`, {
