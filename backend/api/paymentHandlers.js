@@ -25,6 +25,18 @@ function getRuntimeEnv() {
     .toLowerCase();
 }
 
+function getRequestHost(req) {
+  return String(
+    req?.headers?.["x-forwarded-host"] || req?.headers?.host || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function isVercelPreviewHost(hostname) {
+  return Boolean(hostname) && hostname.endsWith(".vercel.app");
+}
+
 function getCredentialSet() {
   const liveKeyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
   const liveKeySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
@@ -130,6 +142,23 @@ async function createOrderHandler(req, res) {
     }
 
     const credentialSet = getCredentialSet();
+    const requestHost = getRequestHost(req);
+
+    // Live mode on disposable preview URLs often fails inside Checkout with a vague 401.
+    // We fail early here so the UI can show a clear fix instead.
+    if (
+      credentialSet.mode === "live" &&
+      isVercelPreviewHost(requestHost) &&
+      String(process.env.ALLOW_LIVE_ON_VERCEL_PREVIEW || "").trim().toLowerCase() !==
+        "true"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Live Razorpay payments are blocked on Vercel preview URLs. Use test Razorpay keys for preview deployments, or open the production domain registered in Razorpay. If this is intentional, set ALLOW_LIVE_ON_VERCEL_PREVIEW=true.",
+      });
+    }
+
     const razorpay = new Razorpay({
       key_id: credentialSet.keyId,
       key_secret: credentialSet.keySecret,
