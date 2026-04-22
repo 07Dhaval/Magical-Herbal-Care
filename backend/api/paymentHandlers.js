@@ -112,6 +112,13 @@ function buildPaymentLinkPayload(req, amount, customer = {}, items = []) {
       sms: false,
       whatsapp: false,
     },
+    options: {
+      checkout: {
+        theme: {
+          hide_topbar: false,
+        },
+      },
+    },
     reminder_enable: false,
     notes: {
       source: "vercel_preview_fallback",

@@ -24,14 +24,14 @@ export default function Footer() {
             </p>
 
             <div className="flex items-center gap-4 mt-8">
-              <a href="https://instagram.com" target="_blank" className="icon">
+              <a href="https://www.instagram.com/magicalherbal_hair_oil?utm_source=qr&igsh=NnN1MnMwbG4waWsz" target="_blank" className="icon">
                 <FaInstagram size={16} />
               </a>
-              <a href="https://facebook.com" target="_blank" className="icon">
+              {/* <a href="https://facebook.com" target="_blank" className="icon">
                 <FaFacebookF size={14} />
-              </a>
+              </a> */}
               <a
-                href="https://wa.me/919999999999"
+                href="https://wa.me/917042779784"
                 target="_blank"
                 className="icon"
               >
@@ -87,8 +87,8 @@ export default function Footer() {
             <div className="space-y-5 text-[15px] text-[#2f4f2f]">
               <p>Magical Herbal Care by Swati Tiwari</p>
               <p>info@magicalherbalcare.com</p>
-              <p>+91 98765 43210</p>
-              <p>India</p>
+              <p>+91 7042779784</p>
+              <p>Express view apartment, Sector 105, Noida, India</p>
             </div>
           </div>
         </div>
