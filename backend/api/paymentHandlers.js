@@ -1,5 +1,14 @@
+const path = require("path");
+const fs = require("fs");
+const dotenv = require("dotenv");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+
+const envFilePath = path.join(__dirname, ".env");
+
+if (fs.existsSync(envFilePath)) {
+  dotenv.config({ path: envFilePath });
+}
 
 function normalizeCredential(value) {
   return String(value || "")
@@ -8,28 +17,33 @@ function normalizeCredential(value) {
     .replace(/\s+/g, "");
 }
 
+function getRuntimeEnv() {
+  return String(
+    process.env.RAZORPAY_ENV || process.env.VERCEL_ENV || process.env.NODE_ENV || ""
+  )
+    .trim()
+    .toLowerCase();
+}
+
 function getCredentialSet() {
   const liveKeyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
   const liveKeySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
   const testKeyId = normalizeCredential(process.env.RAZORPAY_TEST_KEY_ID);
   const testKeySecret = normalizeCredential(process.env.RAZORPAY_TEST_KEY_SECRET);
-  const runtimeEnv = String(
-    process.env.RAZORPAY_ENV || process.env.VERCEL_ENV || process.env.NODE_ENV || ""
-  )
-    .trim()
-    .toLowerCase();
+  const runtimeEnv = getRuntimeEnv();
+  const hasLiveCredentials = Boolean(liveKeyId && liveKeySecret);
+  const hasTestCredentials = Boolean(testKeyId && testKeySecret);
   const shouldPreferTest =
     runtimeEnv === "preview" || runtimeEnv === "development" || runtimeEnv === "test";
+  const shouldPreferLive = runtimeEnv === "production";
 
-  if (shouldPreferTest && testKeyId && testKeySecret) {
-    return {
-      keyId: testKeyId,
-      keySecret: testKeySecret,
-      mode: "test",
-    };
-  }
+  if (runtimeEnv === "live") {
+    if (!hasLiveCredentials) {
+      throw new Error(
+        "RAZORPAY_ENV=live is set, but live Razorpay credentials are missing."
+      );
+    }
 
-  if (liveKeyId && liveKeySecret) {
     return {
       keyId: liveKeyId,
       keySecret: liveKeySecret,
@@ -37,7 +51,61 @@ function getCredentialSet() {
     };
   }
 
-  if (testKeyId && testKeySecret) {
+  if (runtimeEnv === "test") {
+    if (!hasTestCredentials) {
+      throw new Error(
+        "RAZORPAY_ENV=test is set, but test Razorpay credentials are missing."
+      );
+    }
+
+    return {
+      keyId: testKeyId,
+      keySecret: testKeySecret,
+      mode: "test",
+    };
+  }
+
+  if (shouldPreferTest) {
+    if (hasTestCredentials) {
+      return {
+        keyId: testKeyId,
+        keySecret: testKeySecret,
+        mode: "test",
+      };
+    }
+
+    if (hasLiveCredentials) {
+      throw new Error(
+        "Preview/development deployments should use RAZORPAY_TEST_KEY_ID and RAZORPAY_TEST_KEY_SECRET. If you intentionally want live payments here, set RAZORPAY_ENV=live."
+      );
+    }
+  }
+
+  if (shouldPreferLive) {
+    if (hasLiveCredentials) {
+      return {
+        keyId: liveKeyId,
+        keySecret: liveKeySecret,
+        mode: "live",
+      };
+    }
+
+    if (hasTestCredentials) {
+      throw new Error(
+        "Production deployments should use RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET. If you intentionally want test payments here, set RAZORPAY_ENV=test."
+      );
+    }
+  }
+
+  if (hasLiveCredentials) {
+    return {
+      keyId: liveKeyId,
+      keySecret: liveKeySecret,
+      mode: "live",
+    };
+  }
+
+  if (hasTestCredentials) {
     return {
       keyId: testKeyId,
       keySecret: testKeySecret,
@@ -48,19 +116,6 @@ function getCredentialSet() {
   throw new Error(
     "Missing Razorpay credentials. Set live keys for production and test keys for preview/development."
   );
-}
-
-function getRazorpayClient() {
-  const { keyId, keySecret } = getCredentialSet();
-
-  if (!keyId || !keySecret) {
-    throw new Error("Missing Razorpay credentials in environment variables.");
-  }
-
-  return new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
-  });
 }
 
 async function createOrderHandler(req, res) {
@@ -74,18 +129,21 @@ async function createOrderHandler(req, res) {
       });
     }
 
-    const razorpay = getRazorpayClient();
+    const credentialSet = getCredentialSet();
+    const razorpay = new Razorpay({
+      key_id: credentialSet.keyId,
+      key_secret: credentialSet.keySecret,
+    });
     const order = await razorpay.orders.create({
       amount: Math.round(Number(amount) * 100),
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
-    const { keyId, mode } = getCredentialSet();
 
     return res.status(200).json({
       success: true,
-      keyId,
-      mode,
+      keyId: credentialSet.keyId,
+      mode: credentialSet.mode,
       order,
     });
   } catch (error) {
