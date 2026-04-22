@@ -3,6 +3,7 @@ const cors = require("cors");
 const {
   createOrderHandler,
   paymentSuccessHandler,
+  paymentLinkCallbackHandler,
 } = require("./paymentHandlers");
 
 function getAllowedOrigins() {
@@ -50,6 +51,7 @@ function createApp() {
 
   app.post("/api/create-order", createOrderHandler);
   app.post("/api/payment-success", paymentSuccessHandler);
+  app.get("/api/payment-link-callback", paymentLinkCallbackHandler);
 
   return app;
 }

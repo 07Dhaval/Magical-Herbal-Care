@@ -33,8 +33,95 @@ function getRequestHost(req) {
     .toLowerCase();
 }
 
+function getRequestProtocol(req) {
+  return String(req?.headers?.["x-forwarded-proto"] || "https")
+    .trim()
+    .toLowerCase();
+}
+
+function getRequestOrigin(req) {
+  const host = getRequestHost(req);
+
+  if (!host) {
+    return "";
+  }
+
+  return `${getRequestProtocol(req)}://${host}`;
+}
+
 function isVercelPreviewHost(hostname) {
   return Boolean(hostname) && hostname.endsWith(".vercel.app");
+}
+
+function createRazorpayClient(credentialSet) {
+  return new Razorpay({
+    key_id: credentialSet.keyId,
+    key_secret: credentialSet.keySecret,
+  });
+}
+
+function redirectTo(res, url) {
+  if (typeof res.redirect === "function") {
+    return res.redirect(url);
+  }
+
+  res.statusCode = 302;
+  res.setHeader("Location", url);
+  return res.end();
+}
+
+function toSafeNoteValue(value, fallback = "") {
+  const normalized = String(value || fallback).trim();
+  return normalized.slice(0, 250);
+}
+
+function buildPaymentLinkPayload(req, amount, customer = {}, items = []) {
+  const referenceId = `MHC${Date.now()}`.slice(0, 40);
+  const origin = getRequestOrigin(req);
+  const itemSummary = Array.isArray(items)
+    ? items
+        .map((item) => item?.name)
+        .filter(Boolean)
+        .join(", ")
+    : "";
+  const paymentLinkCustomer = {};
+  const customerName = toSafeNoteValue(customer?.name, "Customer");
+  const customerEmail = toSafeNoteValue(customer?.email, "");
+  const customerPhone = toSafeNoteValue(customer?.phone || customer?.contact, "");
+
+  if (customerName) {
+    paymentLinkCustomer.name = customerName;
+  }
+
+  if (customerEmail) {
+    paymentLinkCustomer.email = customerEmail;
+  }
+
+  if (customerPhone) {
+    paymentLinkCustomer.contact = customerPhone;
+  }
+
+  return {
+    amount: Math.round(Number(amount) * 100),
+    currency: "INR",
+    reference_id: referenceId,
+    description: "Magical Herbal Care order payment",
+    customer: paymentLinkCustomer,
+    notify: {
+      email: false,
+      sms: false,
+      whatsapp: false,
+    },
+    reminder_enable: false,
+    notes: {
+      source: "vercel_preview_fallback",
+      customer_name: customerName,
+      customer_city: toSafeNoteValue(customer?.city, ""),
+      item_summary: toSafeNoteValue(itemSummary, "Order payment"),
+    },
+    callback_url: `${origin}/api/payment-link-callback`,
+    callback_method: "get",
+  };
 }
 
 function getCredentialSet() {
@@ -132,7 +219,7 @@ function getCredentialSet() {
 
 async function createOrderHandler(req, res) {
   try {
-    const { amount } = req.body || {};
+    const { amount, customer, items } = req.body || {};
 
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({
@@ -152,6 +239,26 @@ async function createOrderHandler(req, res) {
       String(process.env.ALLOW_LIVE_ON_VERCEL_PREVIEW || "").trim().toLowerCase() !==
         "true"
     ) {
+      const shouldUsePaymentLinkFallback =
+        String(process.env.ENABLE_PAYMENT_LINK_FALLBACK || "true")
+          .trim()
+          .toLowerCase() !== "false";
+
+      if (shouldUsePaymentLinkFallback) {
+        const razorpay = createRazorpayClient(credentialSet);
+        const paymentLink = await razorpay.paymentLink.create(
+          buildPaymentLinkPayload(req, amount, customer, items)
+        );
+
+        return res.status(200).json({
+          success: true,
+          flow: "payment_link",
+          mode: credentialSet.mode,
+          paymentLinkUrl: paymentLink.short_url,
+          message: "Redirecting to Razorpay hosted payment page.",
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message:
@@ -159,10 +266,7 @@ async function createOrderHandler(req, res) {
       });
     }
 
-    const razorpay = new Razorpay({
-      key_id: credentialSet.keyId,
-      key_secret: credentialSet.keySecret,
-    });
+    const razorpay = createRazorpayClient(credentialSet);
     const order = await razorpay.orders.create({
       amount: Math.round(Number(amount) * 100),
       currency: "INR",
@@ -240,7 +344,66 @@ async function paymentSuccessHandler(req, res) {
   }
 }
 
+async function paymentLinkCallbackHandler(req, res) {
+  try {
+    const {
+      razorpay_payment_id,
+      razorpay_payment_link_id,
+      razorpay_payment_link_reference_id,
+      razorpay_payment_link_status,
+      razorpay_signature,
+    } = req.query || {};
+
+    if (
+      !razorpay_payment_id ||
+      !razorpay_payment_link_id ||
+      !razorpay_payment_link_reference_id ||
+      !razorpay_payment_link_status ||
+      !razorpay_signature
+    ) {
+      return redirectTo(res, "/checkout?payment=failed");
+    }
+
+    const { keySecret } = getCredentialSet();
+    const expectedSignature = crypto
+      .createHmac("sha256", keySecret)
+      .update(
+        `${razorpay_payment_link_id}|${razorpay_payment_link_reference_id}|${razorpay_payment_link_status}|${razorpay_payment_id}`
+      )
+      .digest("hex");
+
+    if (
+      expectedSignature !== razorpay_signature ||
+      razorpay_payment_link_status !== "paid"
+    ) {
+      return redirectTo(res, "/checkout?payment=failed");
+    }
+
+    const razorpay = createRazorpayClient(getCredentialSet());
+    const paymentLink = await razorpay.paymentLink.fetch(razorpay_payment_link_id);
+
+    console.log("Payment link verified successfully");
+    console.log({
+      razorpay_payment_id,
+      razorpay_payment_link_id,
+      razorpay_payment_link_reference_id,
+      notes: paymentLink?.notes || {},
+    });
+
+    return redirectTo(
+      res,
+      `/order-success?payment=success&payment_id=${encodeURIComponent(
+        razorpay_payment_id
+      )}`
+    );
+  } catch (error) {
+    console.error("Payment link callback error:", error);
+    return redirectTo(res, "/checkout?payment=failed");
+  }
+}
+
 module.exports = {
   createOrderHandler,
   paymentSuccessHandler,
+  paymentLinkCallbackHandler,
 };

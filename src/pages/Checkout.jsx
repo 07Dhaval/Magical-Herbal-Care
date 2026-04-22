@@ -92,6 +92,8 @@ export default function Checkout() {
         },
         body: JSON.stringify({
           amount: totalPrice,
+          customer: formData,
+          items: checkoutItems,
         }),
       });
 
@@ -104,6 +106,11 @@ export default function Checkout() {
 
       if (!orderRes.ok) {
         throw new Error(orderData?.message || `Backend error: ${orderRes.status}`);
+      }
+
+      if (orderData.flow === "payment_link" && orderData.paymentLinkUrl) {
+        window.location.href = orderData.paymentLinkUrl;
+        return;
       }
 
       if (!orderData.success || !orderData.order) {
