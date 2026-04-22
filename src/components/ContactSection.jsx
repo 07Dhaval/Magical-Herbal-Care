@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone, Clock } from "lucide-react";
+import { useState } from "react";
 
 const contactInfo = [
   {
@@ -28,6 +29,58 @@ const contactInfo = [
 ];
 
 export default function ContactSection() {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleWhatsAppSubmit = (e) => {
+    e.preventDefault();
+
+    const { firstName, lastName, email, phone, subject, message } = formData;
+
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !phone.trim() ||
+      !subject.trim() ||
+      !message.trim()
+    ) {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    const whatsappNumber = "917042779784";
+
+    const text = `Hello Magical Herbal Care,
+
+First Name: ${firstName}
+Last Name: ${lastName}
+Email: ${email}
+Phone: ${phone}
+Subject: ${subject}
+Message: ${message}`;
+
+    const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+      text
+    )}`;
+
+    window.open(whatsappURL, "_blank");
+  };
+
   return (
     <section className="bg-[#f8f4ea] py-14 sm:py-16 lg:py-20">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
@@ -90,13 +143,19 @@ export default function ContactSection() {
               Send A Message
             </h2>
 
-            <form className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <form
+              onSubmit={handleWhatsAppSubmit}
+              className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5"
+            >
               <div>
                 <label className="block text-[14px] text-[#b48a2c] mb-2">
                   First Name
                 </label>
                 <input
                   type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
                   placeholder="Enter first name"
                   className="w-full h-[52px] px-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333]"
                 />
@@ -108,6 +167,9 @@ export default function ContactSection() {
                 </label>
                 <input
                   type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
                   placeholder="Enter last name"
                   className="w-full h-[52px] px-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333]"
                 />
@@ -119,6 +181,9 @@ export default function ContactSection() {
                 </label>
                 <input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                   placeholder="Enter email address"
                   className="w-full h-[52px] px-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333]"
                 />
@@ -130,6 +195,9 @@ export default function ContactSection() {
                 </label>
                 <input
                   type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
                   placeholder="Enter phone number"
                   className="w-full h-[52px] px-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333]"
                 />
@@ -141,6 +209,9 @@ export default function ContactSection() {
                 </label>
                 <input
                   type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
                   placeholder="Enter subject"
                   className="w-full h-[52px] px-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333]"
                 />
@@ -152,6 +223,9 @@ export default function ContactSection() {
                 </label>
                 <textarea
                   rows="6"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
                   placeholder="Write your message"
                   className="w-full px-4 py-4 rounded-[16px] border border-[#e7dcc3] bg-[#fcfaf5] outline-none focus:border-[#2f4f2f] text-[#333] resize-none"
                 ></textarea>
