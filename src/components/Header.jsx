@@ -2,10 +2,7 @@ import { Search, Heart, Menu, ShoppingCart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaWhatsapp } from "react-icons/fa";
-
-const searchProducts = [
-  { id: 1, name: "Magical Herbal Hair Oil", path: "/product/2" },
-];
+import { products } from "../data/products";
 
 export default function Header() {
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -43,7 +40,7 @@ export default function Header() {
 
   const filteredSuggestions = useMemo(() => {
     if (!searchText.trim()) return [];
-    return searchProducts.filter((item) =>
+    return products.filter((item) =>
       item.name.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [searchText]);
@@ -57,7 +54,7 @@ export default function Header() {
   };
 
   const handleSuggestionClick = (item) => {
-    navigate(item.path);
+    navigate(`/product/${item.id}`, { state: { product: item } });
     setShowSearch(false);
     setSearchText("");
   };

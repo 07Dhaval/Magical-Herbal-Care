@@ -1,44 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-
-const shopProducts = [
-  {
-    id: 1,
-    name: "Magical Herbal Hair Oil (Sun-Infused)",
-    category: "Hair Care",
-    image: "/m1.png",
-    images: ["/m1.png", "/m2.png", "/m3.png"],
-    price: "MRP Rs. 580.00",
-    description: {
-      intro:
-        "This is a unique handcrafted herbal oil made using a blend of powerful traditional ingredients, naturally infused under sunlight for 25 days to enhance its potency and effectiveness.",
-
-      ingredients: [
-        "Bhringraj – supports hair growth & strengthens roots",
-        "Cardamom – improves scalp health & adds natural freshness",
-        "Walnut – rich in nutrients for stronger, healthier hair",
-        "Kalonji (Black Seed) – reduces hair fall & promotes regrowth",
-        "Fenugreek (Methi) – adds shine & helps control dandruff",
-      ],
-
-      process:
-        "The oil is slowly sun-infused for 25 days, allowing the herbs to release their full benefits naturally without any chemicals or artificial processing.",
-
-      benefits: [
-        "Helps reduce hair fall",
-        "Supports natural hair growth",
-        "Improves thickness & strength",
-        "Nourishes scalp deeply",
-        "Adds natural shine and softness",
-      ],
-
-      note:
-        "This product is 100% natural, chemical-free, and handmade in small batches with proper care.",
-
-      suitable: "Suitable for all hair types.",
-    },
-  },
-  ];
+import { Link, useSearchParams } from "react-router-dom";
+import { products } from "../data/products";
 
 function ShopCard({ item }) {
   return (
@@ -68,15 +30,24 @@ function ShopCard({ item }) {
 
 export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchParams] = useSearchParams();
+  const rawSearchTerm = searchParams.get("search") || "";
+  const searchTerm = rawSearchTerm.trim().toLowerCase();
 
   const categories = useMemo(() => {
-    return ["All", ...new Set(shopProducts.map((item) => item.category))];
+    return ["All", ...new Set(products.map((item) => item.category))];
   }, []);
 
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === "All") return shopProducts;
-    return shopProducts.filter((item) => item.category === selectedCategory);
-  }, [selectedCategory]);
+    return products.filter((item) => {
+      const matchesCategory =
+        selectedCategory === "All" || item.category === selectedCategory;
+      const matchesSearch =
+        !searchTerm || item.name.toLowerCase().includes(searchTerm);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [searchTerm, selectedCategory]);
 
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-6 sm:py-8 md:py-10">
@@ -111,6 +82,14 @@ export default function Shop() {
             );
           })}
         </div>
+
+        {searchTerm && (
+          <p className="mt-6 text-center text-[14px] text-[#2f4f2f]">
+            {filteredProducts.length > 0
+              ? `Showing results for "${rawSearchTerm}"`
+              : `No products found for "${rawSearchTerm}"`}
+          </p>
+        )}
 
         <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 sm:gap-x-5 md:gap-x-2 gap-y-8 sm:gap-y-10">
           {filteredProducts.map((item) => (
