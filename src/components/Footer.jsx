@@ -8,9 +8,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.8fr_0.8fr_1fr] gap-10 lg:gap-16">
           <div>
             <Link to="/" className="inline-block">
-              <div className="bg-[#fffdf7] p-3 rounded-2xl shadow-sm border border-[#ece3d0] inline-block">
+              <div className="bg-[#fffdf7] p-3   rounded-2xl shadow-sm border border-[#ece3d0] inline-block">
                 <img
-                  src="/magicalherbalcare_logo.jpeg"
+                  src="/magical-logo1.png"
                   alt="logo"
                   className="h-20 sm:h-24 w-auto object-contain"
                 />

@@ -65,9 +65,9 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <Link to="/">
             <img
-              src="/magicalherbalcare_logo.jpeg"
+              src="/magical-logo1.png"
               alt="Magical Herbal Care Logo"
-              className="h-[85px] w-auto object-contain"
+              className="h-[85px] w-[300px] object-contain"
             />
           </Link>
         </div>
