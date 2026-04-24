@@ -1,17 +1,45 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Trash2, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const LOGIN_DURATION = 5 * 60 * 1000;
+
+const getRegisteredUser = () => {
+  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+
+  if (!savedUser) return null;
+
+  if (Date.now() > savedUser.expiryTime) {
+    localStorage.removeItem("registeredUser");
+    return null;
+  }
+
+  return savedUser;
+};
+
 export default function Wishlist() {
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [userData, setUserData] = useState(getRegisteredUser());
 
   useEffect(() => {
     const savedWishlist =
       JSON.parse(localStorage.getItem("wishlistItems")) || [];
     setWishlistItems(savedWishlist);
   }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUserData(getRegisteredUser());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("registeredUser");
+    setUserData(null);
+  };
 
   const removeFromWishlist = (id) => {
     const updatedWishlist = wishlistItems.filter((item) => item.id !== id);
@@ -44,6 +72,19 @@ export default function Wishlist() {
 
       <section className="bg-[#f8f4ea] min-h-screen pt-10 pb-28">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+          {userData && (
+            <div className="mb-6 flex justify-end items-center gap-3 text-[#2f4f2f] font-medium">
+              <span>Welcome, {userData.name}</span>
+
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-full bg-[#b48a2c] text-white text-[13px] hover:opacity-90 transition"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+
           <h1 className="text-[36px] sm:text-[48px] text-center font-semibold text-[#b48a2c] mb-10">
             Your Wishlist
           </h1>

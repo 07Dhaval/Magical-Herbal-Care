@@ -41,7 +41,7 @@ export default function Header() {
   const filteredSuggestions = useMemo(() => {
     if (!searchText.trim()) return [];
     return products.filter((item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase())
+      item.name.toLowerCase().includes(searchText.toLowerCase()),
     );
   }, [searchText]);
 
@@ -67,12 +67,12 @@ export default function Header() {
             <img
               src="/magical-logo1.png"
               alt="Magical Herbal Care Logo"
-              className="h-[85px] w-[300px] object-contain"
+              className="h-[110px] w-[250px] object-contain"
             />
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-12 text-[16px] font-medium text-[#2f4f2f]">
+        <nav className="hidden md:flex items-center gap-12 px-10 py-4 bg-[#e5e5e0] rounded-full text-[15px] font-medium text-[#2f4f2f]">
           <Link to="/" className="hover:text-[#b48a2c] transition">
             Home
           </Link>
@@ -88,6 +88,9 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-5 text-[#2f4f2f] relative">
+          <h1 className="text-[10px] sm:text-[20px] font-serif tracking-wider text-[#2f4f2f]">
+            ~ Swati Tiwari ~
+          </h1>
           <div className="relative hidden md:block">
             <button
               type="button"

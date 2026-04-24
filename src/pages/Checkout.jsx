@@ -1,12 +1,35 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
+const LOGIN_DURATION = 5 * 60 * 1000;
+
+const getRegisteredUser = () => {
+  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+
+  if (!savedUser) return null;
+
+  if (Date.now() > savedUser.expiryTime) {
+    localStorage.removeItem("registeredUser");
+    return null;
+  }
+
+  return savedUser;
+};
+
 export default function Checkout() {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState(getRegisteredUser());
+  const [showLoginForm, setShowLoginForm] = useState(false);
+
+  const [loginData, setLoginData] = useState({
+    name: "",
+    mobile: "",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,6 +52,42 @@ export default function Checkout() {
     }
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUserData(getRegisteredUser());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("registeredUser");
+    setUserData(null);
+  };
+
+  const handleRegister = () => {
+    if (!loginData.name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(loginData.mobile)) {
+      alert("Enter valid 10 digit mobile number");
+      return;
+    }
+
+    const user = {
+      name: loginData.name,
+      mobile: loginData.mobile,
+      expiryTime: Date.now() + LOGIN_DURATION,
+    };
+
+    localStorage.setItem("registeredUser", JSON.stringify(user));
+    setUserData(user);
+    setShowLoginForm(false);
+    setLoginData({ name: "", mobile: "" });
+  };
+
   const parsePrice = (price) => {
     if (!price) return 0;
     const match = String(price).replace(/,/g, "").match(/\d+(\.\d+)?/);
@@ -41,12 +100,38 @@ export default function Checkout() {
 
   const formatPrice = (amount) => `Rs. ${amount.toFixed(2)}`;
 
+  const fetchPincodeDetails = async (pincode) => {
+    if (pincode.length !== 6) return;
+
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+
+      if (data[0]?.Status === "Success") {
+        const postOffice = data[0].PostOffice[0];
+
+        setFormData((prev) => ({
+          ...prev,
+          city: postOffice.District,
+          state: postOffice.State,
+        }));
+      }
+    } catch (error) {
+      console.error("Pincode fetch error:", error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    if (name === "pincode") {
+      fetchPincodeDetails(value);
+    }
   };
 
   const validateForm = () => {
@@ -71,6 +156,14 @@ export default function Checkout() {
   };
 
   const handlePayment = async () => {
+    const user = getRegisteredUser();
+
+    if (!user) {
+      setUserData(null);
+      setShowLoginForm(true);
+      return;
+    }
+
     if (!validateForm()) return;
 
     if (checkoutItems.length === 0) {
@@ -120,8 +213,6 @@ export default function Checkout() {
       if (!orderData.keyId) {
         throw new Error("Backend did not return Razorpay key.");
       }
-
-      console.log("Razorpay mode:", orderData.mode || "unknown");
 
       const options = {
         key: orderData.keyId,
@@ -212,6 +303,19 @@ export default function Checkout() {
 
       <section className="min-h-screen bg-[#f8f4ea] py-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+          {userData && (
+            <div className="mb-6 flex justify-end items-center gap-3 text-[#2f4f2f] font-medium">
+              <span>Welcome, {userData.name}</span>
+
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-full bg-[#b48a2c] text-white text-[13px] hover:opacity-90 transition"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+
           <h1 className="text-[30px] sm:text-[38px] font-semibold text-center text-[#b48a2c] mb-10">
             Checkout
           </h1>
@@ -288,6 +392,63 @@ export default function Checkout() {
           </div>
         </div>
       </section>
+
+      {showLoginForm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+          <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
+            <button
+              onClick={() => setShowLoginForm(false)}
+              className="absolute top-4 right-4 text-[#2f4f2f]"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-[24px] font-semibold text-[#b48a2c] mb-2">
+              Mobile Registration
+            </h2>
+
+            <p className="text-[14px] text-[#666] mb-5">
+              Please register before payment.
+            </p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Enter Your Name"
+                value={loginData.name}
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <input
+                type="tel"
+                placeholder="Enter Mobile Number"
+                value={loginData.mobile}
+                maxLength="10"
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    mobile: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <button
+                onClick={handleRegister}
+                className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
 

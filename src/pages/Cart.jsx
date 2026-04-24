@@ -1,17 +1,89 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const LOGIN_DURATION = 5 * 60 * 1000;
+
+const getRegisteredUser = () => {
+  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+
+  if (!savedUser) return null;
+
+  if (Date.now() > savedUser.expiryTime) {
+    localStorage.removeItem("registeredUser");
+    return null;
+  }
+
+  return savedUser;
+};
+
 export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
+  const [userData, setUserData] = useState(getRegisteredUser());
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginData, setLoginData] = useState({
+    name: "",
+    mobile: "",
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("cartItems")) || [];
     setCartItems(savedCart);
   }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setUserData(getRegisteredUser());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("registeredUser");
+    setUserData(null);
+  };
+
+  const handleRegister = () => {
+    if (!loginData.name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(loginData.mobile)) {
+      alert("Enter valid 10 digit mobile number");
+      return;
+    }
+
+    const user = {
+      name: loginData.name,
+      mobile: loginData.mobile,
+      expiryTime: Date.now() + LOGIN_DURATION,
+    };
+
+    localStorage.setItem("registeredUser", JSON.stringify(user));
+    setUserData(user);
+    setShowLoginForm(false);
+    setLoginData({ name: "", mobile: "" });
+
+    navigate("/checkout");
+  };
+
+  const handleCheckout = () => {
+    const user = getRegisteredUser();
+
+    if (!user) {
+      setUserData(null);
+      setShowLoginForm(true);
+      return;
+    }
+
+    navigate("/checkout");
+  };
 
   const removeItem = (id) => {
     const updated = cartItems.filter((item) => item.id !== id);
@@ -22,6 +94,15 @@ export default function Cart() {
 
   const handleBuyNow = (item) => {
     localStorage.setItem("buyNowItem", JSON.stringify([item]));
+
+    const user = getRegisteredUser();
+
+    if (!user) {
+      setUserData(null);
+      setShowLoginForm(true);
+      return;
+    }
+
     navigate("/checkout");
   };
 
@@ -47,6 +128,19 @@ export default function Cart() {
 
       <section className="bg-[#f8f4ea] min-h-screen pt-10 pb-24">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+          {userData && (
+            <div className="mb-6 flex justify-end items-center gap-3 text-[#2f4f2f] font-medium">
+              <span>Welcome, {userData.name}</span>
+
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-full bg-[#b48a2c] text-white text-[13px] hover:opacity-90 transition"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+
           <h1 className="text-[30px] sm:text-[38px] font-semibold text-center text-[#b48a2c] mb-10">
             Your Cart
           </h1>
@@ -132,7 +226,7 @@ export default function Cart() {
                 </div>
 
                 <button
-                  onClick={() => navigate("/checkout")}
+                  onClick={handleCheckout}
                   className="mt-5 w-full bg-[#b48a2c] hover:opacity-90 transition text-white rounded-[10px] py-3.5 text-[15px] font-medium flex items-center justify-center gap-2"
                 >
                   <ShoppingBag size={17} />
@@ -143,6 +237,63 @@ export default function Cart() {
           )}
         </div>
       </section>
+
+      {showLoginForm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+          <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
+            <button
+              onClick={() => setShowLoginForm(false)}
+              className="absolute top-4 right-4 text-[#2f4f2f]"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-[24px] font-semibold text-[#b48a2c] mb-2">
+              Mobile Registration
+            </h2>
+
+            <p className="text-[14px] text-[#666] mb-5">
+              Please register before checkout.
+            </p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Enter Your Name"
+                value={loginData.name}
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <input
+                type="tel"
+                placeholder="Enter Mobile Number"
+                value={loginData.mobile}
+                maxLength="10"
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    mobile: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <button
+                onClick={handleRegister}
+                className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition"
+              >
+                Continue to Checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </>

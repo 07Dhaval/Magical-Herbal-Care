@@ -1,7 +1,22 @@
 import React, { useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { Star, X } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 import { products } from "../data/products";
+
+const LOGIN_DURATION = 5 * 60 * 1000;
+
+const getRegisteredUser = () => {
+  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+
+  if (!savedUser) return null;
+
+  if (Date.now() > savedUser.expiryTime) {
+    localStorage.removeItem("registeredUser");
+    return null;
+  }
+
+  return savedUser;
+};
 
 export default function ProductDetails() {
   const location = useLocation();
@@ -18,11 +33,33 @@ export default function ProductDetails() {
 
   const [selectedImage, setSelectedImage] = useState(productImages[0]);
 
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [pendingAction, setPendingAction] = useState("");
+  const [userData, setUserData] = useState(getRegisteredUser());
+
+  const [loginData, setLoginData] = useState({
+    name: "",
+    mobile: "",
+  });
+
   React.useEffect(() => {
     setSelectedImage(productImages[0]);
   }, [productImages]);
 
-  const handleAddToWishlist = () => {
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setUserData(getRegisteredUser());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("registeredUser");
+    setUserData(null);
+  };
+
+  const addProductToWishlist = () => {
     const existingWishlist =
       JSON.parse(localStorage.getItem("wishlistItems")) || [];
 
@@ -40,7 +77,7 @@ export default function ProductDetails() {
     }
   };
 
-  const handleAddToCart = () => {
+  const addProductToCart = () => {
     const existingCart = JSON.parse(localStorage.getItem("cartItems")) || [];
 
     const alreadyExists = existingCart.some((item) => item.id === product.id);
@@ -55,9 +92,75 @@ export default function ProductDetails() {
     }
   };
 
+  const openLoginForm = (action) => {
+    const user = getRegisteredUser();
+
+    if (user) {
+      setUserData(user);
+
+      if (action === "cart") addProductToCart();
+      if (action === "wishlist") addProductToWishlist();
+      return;
+    }
+
+    setPendingAction(action);
+    setShowLoginForm(true);
+  };
+
+  const handleRegister = () => {
+    if (!loginData.name.trim()) {
+      alert("Please enter your name");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(loginData.mobile)) {
+      alert("Enter valid 10 digit mobile number");
+      return;
+    }
+
+    const user = {
+      name: loginData.name,
+      mobile: loginData.mobile,
+      expiryTime: Date.now() + LOGIN_DURATION,
+    };
+
+    localStorage.setItem("registeredUser", JSON.stringify(user));
+    setUserData(user);
+    setShowLoginForm(false);
+
+    if (pendingAction === "cart") addProductToCart();
+    if (pendingAction === "wishlist") addProductToWishlist();
+
+    setLoginData({
+      name: "",
+      mobile: "",
+    });
+  };
+
+  const handleAddToWishlist = () => {
+    openLoginForm("wishlist");
+  };
+
+  const handleAddToCart = () => {
+    openLoginForm("cart");
+  };
+
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-8">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
+        {userData && (
+          <div className="mb-5 flex justify-end items-center gap-3 text-[#2f4f2f] font-medium">
+            <span>Welcome, {userData.name}</span>
+
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-full bg-[#b48a2c] text-white text-[13px] hover:opacity-90 transition"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
             <div className="relative overflow-hidden bg-white flex items-center justify-center border border-[#e7dcc3] rounded-[20px]">
@@ -210,6 +313,63 @@ export default function ProductDetails() {
           </div>
         </div>
       </div>
+
+      {showLoginForm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+          <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
+            <button
+              onClick={() => setShowLoginForm(false)}
+              className="absolute top-4 right-4 text-[#2f4f2f]"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-[24px] font-semibold text-[#b48a2c] mb-2">
+              Mobile Registration
+            </h2>
+
+            <p className="text-[14px] text-[#666] mb-5">
+              Please enter your name and mobile number before adding product.
+            </p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Enter Your Name"
+                value={loginData.name}
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <input
+                type="tel"
+                placeholder="Enter Mobile Number"
+                value={loginData.mobile}
+                maxLength="10"
+                onChange={(e) =>
+                  setLoginData((prev) => ({
+                    ...prev,
+                    mobile: e.target.value.replace(/\D/g, ""),
+                  }))
+                }
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+              />
+
+              <button
+                onClick={handleRegister}
+                className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
