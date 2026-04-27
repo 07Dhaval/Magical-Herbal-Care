@@ -1,10 +1,15 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
 const {
   createOrderHandler,
   paymentSuccessHandler,
   paymentLinkCallbackHandler,
 } = require("./paymentHandlers");
+
+const productRoutes = require("./routes/productRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 function getAllowedOrigins() {
   const envOrigins = (process.env.ALLOWED_ORIGINS || "")
@@ -29,33 +34,40 @@ function createApp() {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-
         return callback(new Error(`CORS blocked for origin: ${origin}`));
       },
       credentials: true,
     })
   );
 
-  app.use(express.json());
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // ✅ show uploaded images publicly
+  app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"))
+  );
 
   app.get("/", (req, res) => {
-    res.send("Backend is running");
+    res.send("Backend is running 🚀");
   });
 
   app.get("/api/health", (req, res) => {
-    res.status(200).json({ success: true });
+    res.json({ success: true });
   });
 
   app.post("/api/create-order", createOrderHandler);
   app.post("/api/payment-success", paymentSuccessHandler);
   app.get("/api/payment-link-callback", paymentLinkCallbackHandler);
 
+  app.use("/api/products", productRoutes);
+  app.use("/api/orders", orderRoutes);
+
   return app;
 }
 
-module.exports = {
-  createApp,
-};
+module.exports = { createApp };

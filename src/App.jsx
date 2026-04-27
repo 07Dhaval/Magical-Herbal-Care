@@ -23,6 +23,10 @@ import ScrollToTop from "./components/ScrollToTop";
 import AdminLogin from "./admin/pages/AdminLogin";
 import Dashboard from "./admin/pages/Dashboard";
 import Orders from "./admin/pages/Orders";
+import Products from "./admin/pages/Products";
+import AddProduct from "./admin/pages/AddProduct";
+import EditProduct from "./admin/pages/EditProduct";
+import OrderDetails from "./admin/pages/OrderDetails";
 import ProtectedAdminRoute from "./admin/ProtectedAdminRoute";
 
 function App() {
@@ -31,7 +35,6 @@ function App() {
       <ScrollToTop />
 
       <Routes>
-
         {/* WEBSITE */}
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<ShopAll />} />
@@ -63,6 +66,33 @@ function App() {
         />
 
         <Route
+          path="/admin/products"
+          element={
+            <ProtectedAdminRoute>
+              <Products />
+            </ProtectedAdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/products/add"
+          element={
+            <ProtectedAdminRoute>
+              <AddProduct />
+            </ProtectedAdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/products/edit/:id"
+          element={
+            <ProtectedAdminRoute>
+              <EditProduct />
+            </ProtectedAdminRoute>
+          }
+        />
+
+        <Route
           path="/admin/orders"
           element={
             <ProtectedAdminRoute>
@@ -71,6 +101,14 @@ function App() {
           }
         />
 
+        <Route
+          path="/admin/orders/:id"
+          element={
+            <ProtectedAdminRoute>
+              <OrderDetails />
+            </ProtectedAdminRoute>
+          }
+        />
       </Routes>
     </Router>
   );

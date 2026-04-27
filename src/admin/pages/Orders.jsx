@@ -1,86 +1,88 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import ordersData from "../data/ordersData";
+import InvoiceButton from "../components/InvoiceButton";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+).replace(/\/$/, "");
 
 export default function Orders() {
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [orders, setOrders] = useState([]);
 
-  const categories = ["All", ...new Set(ordersData.map((item) => item.category))];
+  const fetchOrders = async () => {
+    const res = await fetch(`${API_BASE_URL}/api/orders`);
+    const data = await res.json();
 
-  const filteredOrders =
-    selectedCategory === "All"
-      ? ordersData
-      : ordersData.filter((item) => item.category === selectedCategory);
+    if (data.success) setOrders(data.orders);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const updateStatus = async (id, status) => {
+    await fetch(`${API_BASE_URL}/api/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    fetchOrders();
+  };
 
   return (
     <AdminLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        
-        <h1 className="text-3xl font-bold text-[#b48a2c]">
-          Orders
-        </h1>
+      <h1 className="text-3xl font-bold text-[#b48a2c] mb-6">Orders</h1>
 
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="border border-[#e7dcc3] rounded-xl px-4 py-3 bg-white outline-none text-[#2f4f2f] focus:border-[#b48a2c]"
-        >
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="overflow-x-auto bg-white border border-[#e7dcc3] rounded-2xl shadow-sm">
+      <div className="overflow-x-auto bg-white border rounded-2xl">
         <table className="w-full min-w-[900px]">
-          
-          <thead className="bg-[#f3ead7]">
-            <tr className="text-left text-[#b48a2c]">
-              <th className="px-4 py-3">Order ID</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Qty</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Date</th>
+          <thead className="bg-[#f3ead7] text-[#b48a2c]">
+            <tr>
+              <th className="p-3">Order ID</th>
+              <th className="p-3">Customer</th>
+              <th className="p-3">Total</th>
+              <th className="p-3">Payment</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Action</th>
+              <th>Invoice</th>
             </tr>
           </thead>
 
           <tbody>
-            {filteredOrders.map((order) => (
-              <tr
-                key={order.id}
-                className="border-t border-[#e7dcc3] text-[#2f4f2f] hover:bg-[#f9f6ef] transition"
-              >
-                <td className="px-4 py-3">{order.id}</td>
-                <td className="px-4 py-3">{order.customerName}</td>
-                <td className="px-4 py-3">{order.productName}</td>
-                <td className="px-4 py-3">{order.category}</td>
-                <td className="px-4 py-3">{order.quantity}</td>
-                <td className="px-4 py-3">₹{order.price}</td>
-                <td className="px-4 py-3 font-medium text-[#b48a2c]">
-                  ₹{order.total}
+            {orders.map((order) => (
+              <tr key={order._id} className="border-t">
+                <td className="p-3">{order.orderId}</td>
+                <td className="p-3">{order.customer?.name || "N/A"}</td>
+                <td className="p-3 text-[#b48a2c]">₹{order.total}</td>
+                <td className="p-3">
+                  <span className="text-green-600">Paid</span>
                 </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-[12px] font-medium ${
-                      order.status === "Delivered"
-                        ? "bg-[#e6f4ea] text-[#2f6f3e]"
-                        : "bg-[#fff4e5] text-[#b48a2c]"
-                    }`}
-                  >
+                <td className="p-3">
+                  <span className="bg-yellow-100 px-3 py-1 rounded">
                     {order.status}
                   </span>
                 </td>
-                <td className="px-4 py-3">{order.date}</td>
+                <td className="p-3 space-x-2">
+                  <button
+                    onClick={() => updateStatus(order._id, "Delivered")}
+                    className="bg-green-600 text-white px-3 py-1 rounded"
+                  >
+                    Delivered
+                  </button>
+
+                  <button
+                    onClick={() => updateStatus(order._id, "Cancelled")}
+                    className="bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    Cancel
+                  </button>
+                </td>
+                <td className="p-3">
+                  <InvoiceButton order={order} />
+                </td>
               </tr>
             ))}
           </tbody>
-
         </table>
       </div>
     </AdminLayout>
