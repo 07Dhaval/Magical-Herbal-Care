@@ -1,8 +1,12 @@
 const path = require("path");
 const dotenv = require("dotenv");
 const { createApp } = require("./createApp");
+const connectDB = require("./config/db"); // 👈 ADD THIS
 
 dotenv.config({ path: path.join(__dirname, ".env") });
+
+// 👇 CONNECT DATABASE
+connectDB();
 
 if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
   console.error("Missing Razorpay credentials in backend/api/.env");

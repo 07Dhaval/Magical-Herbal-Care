@@ -1,11 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { products } from "../data/products";
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").replace(
+  /\/$/,
+  ""
+);
 
 function ShopCard({ item }) {
+  const productId = item._id || item.id;
+
   return (
     <Link
-      to={`/product/${item.id}`}
+      to={`/product/${productId}`}
       state={{ product: item }}
       className="block text-center group"
     >
@@ -29,25 +35,53 @@ function ShopCard({ item }) {
 }
 
 export default function Shop() {
+  const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
+
   const [searchParams] = useSearchParams();
   const rawSearchTerm = searchParams.get("search") || "";
   const searchTerm = rawSearchTerm.trim().toLowerCase();
 
-  const categories = useMemo(() => {
-    return ["All", ...new Set(products.map((item) => item.category))];
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+
+        const res = await fetch(`${API_BASE_URL}/api/products`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          setProducts(data.products || []);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        console.error("Product fetch error:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
+
+  const categories = useMemo(() => {
+    return ["All", ...new Set(products.map((item) => item.category).filter(Boolean))];
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
       const matchesCategory =
         selectedCategory === "All" || item.category === selectedCategory;
+
       const matchesSearch =
-        !searchTerm || item.name.toLowerCase().includes(searchTerm);
+        !searchTerm || item.name?.toLowerCase().includes(searchTerm);
 
       return matchesCategory && matchesSearch;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [products, searchTerm, selectedCategory]);
 
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-6 sm:py-8 md:py-10">
@@ -91,11 +125,19 @@ export default function Shop() {
           </p>
         )}
 
-        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 sm:gap-x-5 md:gap-x-2 gap-y-8 sm:gap-y-10">
-          {filteredProducts.map((item) => (
-            <ShopCard key={item.id} item={item} />
-          ))}
-        </div>
+        {loading ? (
+          <p className="mt-10 text-center text-[#2f4f2f]">Loading products...</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="mt-10 text-center text-[#2f4f2f]">
+            No products available.
+          </p>
+        ) : (
+          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 sm:gap-x-5 md:gap-x-2 gap-y-8 sm:gap-y-10">
+            {filteredProducts.map((item) => (
+              <ShopCard key={item._id || item.id} item={item} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

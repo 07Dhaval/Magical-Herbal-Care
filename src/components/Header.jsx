@@ -67,7 +67,7 @@ export default function Header() {
             <img
               src="/magical-logo1.png"
               alt="Magical Herbal Care Logo"
-              className="h-[110px] w-[250px] object-contain"
+              className="h-[150px] w-[250px] object-contain"
             />
           </Link>
         </div>

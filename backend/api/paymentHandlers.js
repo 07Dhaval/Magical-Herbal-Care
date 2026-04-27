@@ -1,302 +1,4 @@
-const path = require("path");
-const fs = require("fs");
-const dotenv = require("dotenv");
-const Razorpay = require("razorpay");
-const crypto = require("crypto");
-
-const envFilePath = path.join(__dirname, ".env");
-
-if (fs.existsSync(envFilePath)) {
-  dotenv.config({ path: envFilePath });
-}
-
-function normalizeCredential(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^['"]|['"]$/g, "")
-    .replace(/\s+/g, "");
-}
-
-function getRuntimeEnv() {
-  return String(
-    process.env.RAZORPAY_ENV || process.env.VERCEL_ENV || process.env.NODE_ENV || ""
-  )
-    .trim()
-    .toLowerCase();
-}
-
-function getRequestHost(req) {
-  return String(
-    req?.headers?.["x-forwarded-host"] || req?.headers?.host || ""
-  )
-    .trim()
-    .toLowerCase();
-}
-
-function getRequestProtocol(req) {
-  return String(req?.headers?.["x-forwarded-proto"] || "https")
-    .trim()
-    .toLowerCase();
-}
-
-function getRequestOrigin(req) {
-  const host = getRequestHost(req);
-
-  if (!host) {
-    return "";
-  }
-
-  return `${getRequestProtocol(req)}://${host}`;
-}
-
-function isVercelPreviewHost(hostname) {
-  return Boolean(hostname) && hostname.endsWith(".vercel.app");
-}
-
-function createRazorpayClient(credentialSet) {
-  return new Razorpay({
-    key_id: credentialSet.keyId,
-    key_secret: credentialSet.keySecret,
-  });
-}
-
-function redirectTo(res, url) {
-  if (typeof res.redirect === "function") {
-    return res.redirect(url);
-  }
-
-  res.statusCode = 302;
-  res.setHeader("Location", url);
-  return res.end();
-}
-
-function toSafeNoteValue(value, fallback = "") {
-  const normalized = String(value || fallback).trim();
-  return normalized.slice(0, 250);
-}
-
-function buildPaymentLinkPayload(req, amount, customer = {}, items = []) {
-  const referenceId = `MHC${Date.now()}`.slice(0, 40);
-  const origin = getRequestOrigin(req);
-  const itemSummary = Array.isArray(items)
-    ? items
-        .map((item) => item?.name)
-        .filter(Boolean)
-        .join(", ")
-    : "";
-  const paymentLinkCustomer = {};
-  const customerName = toSafeNoteValue(customer?.name, "Customer");
-  const customerEmail = toSafeNoteValue(customer?.email, "");
-  const customerPhone = toSafeNoteValue(customer?.phone || customer?.contact, "");
-
-  if (customerName) {
-    paymentLinkCustomer.name = customerName;
-  }
-
-  if (customerEmail) {
-    paymentLinkCustomer.email = customerEmail;
-  }
-
-  if (customerPhone) {
-    paymentLinkCustomer.contact = customerPhone;
-  }
-
-  return {
-    amount: Math.round(Number(amount) * 100),
-    currency: "INR",
-    reference_id: referenceId,
-    description: "Magical Herbal Care order payment",
-    customer: paymentLinkCustomer,
-    notify: {
-      email: false,
-      sms: false,
-      whatsapp: false,
-    },
-    options: {
-      checkout: {
-        theme: {
-          hide_topbar: false,
-        },
-      },
-    },
-    reminder_enable: false,
-    notes: {
-      source: "vercel_preview_fallback",
-      customer_name: customerName,
-      customer_city: toSafeNoteValue(customer?.city, ""),
-      item_summary: toSafeNoteValue(itemSummary, "Order payment"),
-    },
-    callback_url: `${origin}/api/payment-link-callback`,
-    callback_method: "get",
-  };
-}
-
-function getCredentialSet() {
-  const liveKeyId = normalizeCredential(process.env.RAZORPAY_KEY_ID);
-  const liveKeySecret = normalizeCredential(process.env.RAZORPAY_KEY_SECRET);
-  const testKeyId = normalizeCredential(process.env.RAZORPAY_TEST_KEY_ID);
-  const testKeySecret = normalizeCredential(process.env.RAZORPAY_TEST_KEY_SECRET);
-  const runtimeEnv = getRuntimeEnv();
-  const hasLiveCredentials = Boolean(liveKeyId && liveKeySecret);
-  const hasTestCredentials = Boolean(testKeyId && testKeySecret);
-  const shouldPreferTest =
-    runtimeEnv === "preview" || runtimeEnv === "development" || runtimeEnv === "test";
-  const shouldPreferLive = runtimeEnv === "production";
-
-  if (runtimeEnv === "live") {
-    if (!hasLiveCredentials) {
-      throw new Error(
-        "RAZORPAY_ENV=live is set, but live Razorpay credentials are missing."
-      );
-    }
-
-    return {
-      keyId: liveKeyId,
-      keySecret: liveKeySecret,
-      mode: "live",
-    };
-  }
-
-  if (runtimeEnv === "test") {
-    if (!hasTestCredentials) {
-      throw new Error(
-        "RAZORPAY_ENV=test is set, but test Razorpay credentials are missing."
-      );
-    }
-
-    return {
-      keyId: testKeyId,
-      keySecret: testKeySecret,
-      mode: "test",
-    };
-  }
-
-  if (shouldPreferTest) {
-    if (hasTestCredentials) {
-      return {
-        keyId: testKeyId,
-        keySecret: testKeySecret,
-        mode: "test",
-      };
-    }
-
-    if (hasLiveCredentials) {
-      throw new Error(
-        "Preview/development deployments should use RAZORPAY_TEST_KEY_ID and RAZORPAY_TEST_KEY_SECRET. If you intentionally want live payments here, set RAZORPAY_ENV=live."
-      );
-    }
-  }
-
-  if (shouldPreferLive) {
-    if (hasLiveCredentials) {
-      return {
-        keyId: liveKeyId,
-        keySecret: liveKeySecret,
-        mode: "live",
-      };
-    }
-
-    if (hasTestCredentials) {
-      throw new Error(
-        "Production deployments should use RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET. If you intentionally want test payments here, set RAZORPAY_ENV=test."
-      );
-    }
-  }
-
-  if (hasLiveCredentials) {
-    return {
-      keyId: liveKeyId,
-      keySecret: liveKeySecret,
-      mode: "live",
-    };
-  }
-
-  if (hasTestCredentials) {
-    return {
-      keyId: testKeyId,
-      keySecret: testKeySecret,
-      mode: "test",
-    };
-  }
-
-  throw new Error(
-    "Missing Razorpay credentials. Set live keys for production and test keys for preview/development."
-  );
-}
-
-async function createOrderHandler(req, res) {
-  try {
-    const { amount, customer, items } = req.body || {};
-
-    if (!amount || Number(amount) <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid amount is required",
-      });
-    }
-
-    const credentialSet = getCredentialSet();
-    const requestHost = getRequestHost(req);
-
-    // Live mode on disposable preview URLs often fails inside Checkout with a vague 401.
-    // We fail early here so the UI can show a clear fix instead.
-    if (
-      credentialSet.mode === "live" &&
-      isVercelPreviewHost(requestHost) &&
-      String(process.env.ALLOW_LIVE_ON_VERCEL_PREVIEW || "").trim().toLowerCase() !==
-        "true"
-    ) {
-      const shouldUsePaymentLinkFallback =
-        String(process.env.ENABLE_PAYMENT_LINK_FALLBACK || "true")
-          .trim()
-          .toLowerCase() !== "false";
-
-      if (shouldUsePaymentLinkFallback) {
-        const razorpay = createRazorpayClient(credentialSet);
-        const paymentLink = await razorpay.paymentLink.create(
-          buildPaymentLinkPayload(req, amount, customer, items)
-        );
-
-        return res.status(200).json({
-          success: true,
-          flow: "payment_link",
-          mode: credentialSet.mode,
-          paymentLinkUrl: paymentLink.short_url,
-          message: "Redirecting to Razorpay hosted payment page.",
-        });
-      }
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "Live Razorpay payments are blocked on Vercel preview URLs. Use test Razorpay keys for preview deployments, or open the production domain registered in Razorpay. If this is intentional, set ALLOW_LIVE_ON_VERCEL_PREVIEW=true.",
-      });
-    }
-
-    const razorpay = createRazorpayClient(credentialSet);
-    const order = await razorpay.orders.create({
-      amount: Math.round(Number(amount) * 100),
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    });
-
-    return res.status(200).json({
-      success: true,
-      keyId: credentialSet.keyId,
-      mode: credentialSet.mode,
-      order,
-    });
-  } catch (error) {
-    console.error("Create order error:", error);
-    return res.status(500).json({
-      success: false,
-      message:
-        error?.error?.description ||
-        error?.message ||
-        "Failed to create Razorpay order",
-    });
-  }
-}
+const Order = require("./models/Order"); // 👈 ADD TOP
 
 async function paymentSuccessHandler(req, res) {
   try {
@@ -317,6 +19,7 @@ async function paymentSuccessHandler(req, res) {
     }
 
     const { keySecret } = getCredentialSet();
+
     const expectedSignature = crypto
       .createHmac("sha256", keySecret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -329,18 +32,23 @@ async function paymentSuccessHandler(req, res) {
       });
     }
 
-    console.log("Payment verified successfully");
-    console.log({
-      razorpay_order_id,
-      razorpay_payment_id,
+    // ✅ SAVE ORDER IN DATABASE
+    const newOrder = new Order({
       customer,
       items,
       total,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      status: "paid",
     });
+
+    await newOrder.save();
+
+    console.log("Order saved in DB");
 
     return res.status(200).json({
       success: true,
-      message: "Payment verified and order saved successfully",
+      message: "Payment verified & order saved",
     });
   } catch (error) {
     console.error("Payment success error:", error);
@@ -350,67 +58,3 @@ async function paymentSuccessHandler(req, res) {
     });
   }
 }
-
-async function paymentLinkCallbackHandler(req, res) {
-  try {
-    const {
-      razorpay_payment_id,
-      razorpay_payment_link_id,
-      razorpay_payment_link_reference_id,
-      razorpay_payment_link_status,
-      razorpay_signature,
-    } = req.query || {};
-
-    if (
-      !razorpay_payment_id ||
-      !razorpay_payment_link_id ||
-      !razorpay_payment_link_reference_id ||
-      !razorpay_payment_link_status ||
-      !razorpay_signature
-    ) {
-      return redirectTo(res, "/checkout?payment=failed");
-    }
-
-    const { keySecret } = getCredentialSet();
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(
-        `${razorpay_payment_link_id}|${razorpay_payment_link_reference_id}|${razorpay_payment_link_status}|${razorpay_payment_id}`
-      )
-      .digest("hex");
-
-    if (
-      expectedSignature !== razorpay_signature ||
-      razorpay_payment_link_status !== "paid"
-    ) {
-      return redirectTo(res, "/checkout?payment=failed");
-    }
-
-    const razorpay = createRazorpayClient(getCredentialSet());
-    const paymentLink = await razorpay.paymentLink.fetch(razorpay_payment_link_id);
-
-    console.log("Payment link verified successfully");
-    console.log({
-      razorpay_payment_id,
-      razorpay_payment_link_id,
-      razorpay_payment_link_reference_id,
-      notes: paymentLink?.notes || {},
-    });
-
-    return redirectTo(
-      res,
-      `/order-success?payment=success&payment_id=${encodeURIComponent(
-        razorpay_payment_id
-      )}`
-    );
-  } catch (error) {
-    console.error("Payment link callback error:", error);
-    return redirectTo(res, "/checkout?payment=failed");
-  }
-}
-
-module.exports = {
-  createOrderHandler,
-  paymentSuccessHandler,
-  paymentLinkCallbackHandler,
-};
