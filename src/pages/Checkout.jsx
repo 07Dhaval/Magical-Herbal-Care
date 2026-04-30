@@ -8,11 +8,12 @@ const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
 ).replace(/\/$/, "");
 
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
+
 const LOGIN_DURATION = 5 * 60 * 1000;
 
-const getProductId = (item) => {
-  return String(item?._id || item?.id || item?.productId || "");
-};
+const getProductId = (item) =>
+  String(item?._id || item?.id || item?.productId || "");
 
 const parsePrice = (price) => {
   if (typeof price === "number") return price;
@@ -39,16 +40,20 @@ const normalizeCheckoutItem = (item) => {
 };
 
 const getRegisteredUser = () => {
-  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+  try {
+    const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+    if (!savedUser) return null;
 
-  if (!savedUser) return null;
+    if (Date.now() > savedUser.expiryTime) {
+      localStorage.removeItem("registeredUser");
+      return null;
+    }
 
-  if (Date.now() > savedUser.expiryTime) {
+    return savedUser;
+  } catch {
     localStorage.removeItem("registeredUser");
     return null;
   }
-
-  return savedUser;
 };
 
 export default function Checkout() {
@@ -58,7 +63,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState(getRegisteredUser());
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [pendingCOD, setPendingCOD] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState(false);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -102,9 +107,9 @@ export default function Checkout() {
 
     if (normalizedCartItems.length > 0) {
       setCheckoutItems(normalizedCartItems);
-      localStorage.removeItem("buyNowItem");
       localStorage.setItem("checkoutMode", "cart");
       localStorage.setItem("cartItems", JSON.stringify(normalizedCartItems));
+      localStorage.removeItem("buyNowItem");
       return;
     }
 
@@ -125,6 +130,16 @@ export default function Checkout() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (userData) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || userData.name || "",
+        email: prev.email || userData.email || "",
+      }));
+    }
+  }, [userData]);
+
   const totalPrice = useMemo(() => {
     return checkoutItems.reduce(
       (sum, item) => sum + parsePrice(item.price) * Number(item.quantity || 1),
@@ -132,12 +147,12 @@ export default function Checkout() {
     );
   }, [checkoutItems]);
 
+  const formatPrice = (amount) => `Rs. ${Number(amount || 0).toFixed(2)}`;
+
   const handleLogout = () => {
     localStorage.removeItem("registeredUser");
     setUserData(null);
   };
-
-  const formatPrice = (amount) => `Rs. ${Number(amount || 0).toFixed(2)}`;
 
   const saveCheckoutItems = (items) => {
     const normalized = items
@@ -199,13 +214,13 @@ export default function Checkout() {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const data = await res.json();
 
-      if (data[0]?.Status === "Success") {
-        const postOffice = data[0].PostOffice[0];
+      if (data?.[0]?.Status === "Success") {
+        const postOffice = data[0].PostOffice?.[0];
 
         setFormData((prev) => ({
           ...prev,
-          city: postOffice.District,
-          state: postOffice.State,
+          city: postOffice?.District || prev.city,
+          state: postOffice?.State || prev.state,
         }));
       }
     } catch (error) {
@@ -260,7 +275,7 @@ export default function Checkout() {
       productId: getProductId(item),
       name: item.name || "Product",
       category: item.category || "",
-      image: item.image || "",
+      image: item.image || item.images?.[0] || "",
       price: parsePrice(item.price),
       quantity: Number(item.quantity) || 1,
     }));
@@ -275,8 +290,8 @@ export default function Checkout() {
           ? order.items
           : cleanItemsForOrder(),
       totalAmount: order?.totalAmount || totalPrice,
-      paymentMethod: order?.paymentMethod || "COD",
-      paymentStatus: order?.paymentStatus || "Pending",
+      paymentMethod: order?.paymentMethod || "Razorpay",
+      paymentStatus: order?.paymentStatus || "Paid",
       orderStatus: order?.orderStatus || "Pending",
       createdAt: order?.createdAt || new Date().toISOString(),
     };
@@ -311,51 +326,6 @@ export default function Checkout() {
     return data.order;
   };
 
-  const placeCODOrder = async () => {
-    if (!validateForm()) return;
-
-    if (checkoutItems.length === 0) {
-      alert("No items found for checkout.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const savedOrder = await saveOrderToBackend({
-        customer: formData,
-        items: cleanItemsForOrder(),
-        totalAmount: totalPrice,
-        paymentMethod: "COD",
-        paymentStatus: "Pending",
-        orderStatus: "Pending",
-        razorpayOrderId: "",
-        razorpayPaymentId: "",
-        razorpaySignature: "",
-      });
-
-      clearCartAndGoSuccess(savedOrder);
-    } catch (error) {
-      console.error("COD order error:", error);
-      alert(error.message || "COD order failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCOD = async () => {
-    const user = getRegisteredUser();
-
-    if (!user) {
-      setUserData(null);
-      setPendingCOD(true);
-      setShowLoginForm(true);
-      return;
-    }
-
-    await placeCODOrder();
-  };
-
   const sendOtp = async () => {
     if (!loginData.name.trim()) return alert("Please enter your name");
 
@@ -368,8 +338,12 @@ export default function Checkout() {
 
       const res = await fetch(`${API_BASE_URL}/api/otp/send`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginData.email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginData.email,
+        }),
       });
 
       const data = await res.json();
@@ -381,6 +355,7 @@ export default function Checkout() {
       setOtpSent(true);
       alert("OTP sent successfully");
     } catch (error) {
+      console.error("OTP send error:", error);
       alert(error.message || "OTP send failed");
     } finally {
       setOtpLoading(false);
@@ -395,7 +370,9 @@ export default function Checkout() {
 
       const res = await fetch(`${API_BASE_URL}/api/otp/verify`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           email: loginData.email,
           otp: loginData.otp,
@@ -416,17 +393,25 @@ export default function Checkout() {
 
       localStorage.setItem("registeredUser", JSON.stringify(user));
       setUserData(user);
+
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || user.name,
+        email: prev.email || user.email,
+      }));
+
       setShowLoginForm(false);
       setOtpSent(false);
       setLoginData({ name: "", email: "", otp: "" });
 
-      if (pendingCOD) {
-        setPendingCOD(false);
+      if (pendingPayment) {
+        setPendingPayment(false);
         setTimeout(() => {
-          placeCODOrder();
-        }, 100);
+          handlePayment();
+        }, 200);
       }
     } catch (error) {
+      console.error("OTP verify error:", error);
       alert(error.message || "OTP verification failed");
     } finally {
       setOtpLoading(false);
@@ -436,7 +421,7 @@ export default function Checkout() {
   const closeOtpPopup = () => {
     setShowLoginForm(false);
     setOtpSent(false);
-    setPendingCOD(false);
+    setPendingPayment(false);
     setLoginData({ name: "", email: "", otp: "" });
   };
 
@@ -445,6 +430,7 @@ export default function Checkout() {
 
     if (!user) {
       setUserData(null);
+      setPendingPayment(true);
       setShowLoginForm(true);
       return;
     }
@@ -456,17 +442,26 @@ export default function Checkout() {
       return;
     }
 
+    if (!RAZORPAY_KEY_ID) {
+      alert("Razorpay key missing. Add VITE_RAZORPAY_KEY_ID in frontend environment variables.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       if (!window.Razorpay) {
-        throw new Error("Razorpay SDK failed to load.");
+        throw new Error("Razorpay SDK failed to load. Add Razorpay script in index.html.");
       }
 
       const orderRes = await fetch(`${API_BASE_URL}/api/create-order`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: totalPrice }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: totalPrice,
+        }),
       });
 
       const orderData = await orderRes.json();
@@ -476,15 +471,17 @@ export default function Checkout() {
       }
 
       const options = {
-        key: orderData.key || orderData.keyId,
+        key: RAZORPAY_KEY_ID,
         amount: orderData.order.amount,
-        currency: orderData.order.currency,
+        currency: orderData.order.currency || "INR",
         name: "Magical Herbal Care",
         description: "Order Payment",
         order_id: orderData.order.id,
 
         handler: async function (response) {
           try {
+            setLoading(true);
+
             const savedOrder = await saveOrderToBackend({
               customer: formData,
               items: cleanItemsForOrder(),
@@ -501,6 +498,8 @@ export default function Checkout() {
           } catch (error) {
             console.error("Payment save error:", error);
             alert(error.message || "Payment succeeded, but saving order failed.");
+          } finally {
+            setLoading(false);
           }
         },
 
@@ -537,7 +536,6 @@ export default function Checkout() {
     } catch (error) {
       console.error("Payment start error:", error);
       alert(error.message || "Something went wrong while starting payment.");
-    } finally {
       setLoading(false);
     }
   };
@@ -579,6 +577,7 @@ export default function Checkout() {
                   placeholder="Full Name"
                   className="input"
                 />
+
                 <input
                   name="email"
                   value={formData.email}
@@ -586,6 +585,7 @@ export default function Checkout() {
                   placeholder="Email Address"
                   className="input"
                 />
+
                 <input
                   name="phone"
                   value={formData.phone}
@@ -594,6 +594,7 @@ export default function Checkout() {
                   maxLength="10"
                   className="input"
                 />
+
                 <input
                   name="city"
                   value={formData.city}
@@ -601,6 +602,7 @@ export default function Checkout() {
                   placeholder="City"
                   className="input"
                 />
+
                 <input
                   name="state"
                   value={formData.state}
@@ -608,6 +610,7 @@ export default function Checkout() {
                   placeholder="State"
                   className="input"
                 />
+
                 <input
                   name="pincode"
                   value={formData.pincode}
@@ -702,6 +705,7 @@ export default function Checkout() {
                 <span className="text-[17px] font-semibold text-[#b48a2c]">
                   Total
                 </span>
+
                 <span className="text-[18px] font-bold text-[#b48a2c]">
                   {formatPrice(totalPrice)}
                 </span>
@@ -715,7 +719,6 @@ export default function Checkout() {
                 >
                   {loading ? "Processing..." : "Pay with Razorpay"}
                 </button>
-
               </div>
             </div>
           </div>
