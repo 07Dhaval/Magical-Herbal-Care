@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImagePlus, UploadCloud } from "lucide-react";
-import AdminLayout from "../components/AdminLayout";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").replace(/\/$/, "");
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+).replace(/\/$/, "");
 
 export default function AddProduct() {
   const navigate = useNavigate();
@@ -22,9 +23,13 @@ export default function AddProduct() {
 
   const [images, setImages] = useState([null, null, null]);
   const [previewImages, setPreviewImages] = useState(["", "", ""]);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   const handleImageChange = (index, file) => {
@@ -42,6 +47,11 @@ export default function AddProduct() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!form.name || !form.category || !form.price) {
+      alert("Please fill product name, category and price");
+      return;
+    }
+
     const selectedImages = images.filter(Boolean);
 
     if (selectedImages.length === 0) {
@@ -49,51 +59,86 @@ export default function AddProduct() {
       return;
     }
 
-    const description = {
-      intro: form.intro,
-      ingredients: form.ingredients ? form.ingredients.split("\n").filter(Boolean) : [],
-      process: form.process,
-      benefits: form.benefits ? form.benefits.split("\n").filter(Boolean) : [],
-      note: form.note,
-      suitable: form.suitable,
-    };
+    try {
+      setLoading(true);
 
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("category", form.category);
-    formData.append("price", form.price);
-    formData.append("description", JSON.stringify(description));
+      const description = {
+        intro: form.intro,
+        ingredients: form.ingredients
+          ? form.ingredients.split("\n").filter(Boolean)
+          : [],
+        process: form.process,
+        benefits: form.benefits
+          ? form.benefits.split("\n").filter(Boolean)
+          : [],
+        note: form.note,
+        suitable: form.suitable,
+      };
 
-    images.forEach((image) => {
-      if (image) formData.append("images", image);
-    });
+      const formData = new FormData();
+      formData.append("name", form.name);
+      formData.append("category", form.category);
+      formData.append("price", form.price);
+      formData.append("description", JSON.stringify(description));
 
-    const res = await fetch(`${API_BASE_URL}/api/products`, {
-      method: "POST",
-      body: formData,
-    });
+      images.forEach((image) => {
+        if (image) formData.append("images", image);
+      });
 
-    const data = await res.json();
+      const res = await fetch(`${API_BASE_URL}/api/products`, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (data.success) {
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to add product");
+      }
+
       alert("Product added successfully");
       navigate("/admin/products");
-    } else {
-      alert(data.message || "Failed to add product");
+    } catch (error) {
+      alert(error.message || "Failed to add product");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AdminLayout>
-      <h1 className="text-3xl font-bold text-[#2f4f2f] mb-6">Add Product</h1>
+    <div className="w-full">
+      <h1 className="text-3xl font-bold text-[#2f4f2f] mb-6">
+        Add Product
+      </h1>
 
       <form
         onSubmit={handleSubmit}
         className="bg-white border border-[#e7dcc3] rounded-2xl p-6 space-y-4 max-w-5xl shadow-sm"
       >
-        <input name="name" value={form.name} onChange={handleChange} placeholder="Product Name" className="input" />
-        <input name="category" value={form.category} onChange={handleChange} placeholder="Category" className="input" />
-        <input name="price" value={form.price} onChange={handleChange} placeholder="Price" type="number" className="input" />
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Product Name"
+          className="input"
+        />
+
+        <input
+          name="category"
+          value={form.category}
+          onChange={handleChange}
+          placeholder="Category"
+          className="input"
+        />
+
+        <input
+          name="price"
+          value={form.price}
+          onChange={handleChange}
+          placeholder="Price"
+          type="number"
+          className="input"
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[0, 1, 2].map((index) => (
@@ -119,9 +164,11 @@ export default function AddProduct() {
                   <div className="w-12 h-12 rounded-full bg-[#2f4f2f] text-white flex items-center justify-center mb-3">
                     <UploadCloud size={24} />
                   </div>
+
                   <h3 className="text-[#2f4f2f] font-semibold">
                     Upload Image {index + 1}
                   </h3>
+
                   <p className="text-[#b48a2c] text-sm mt-1">
                     PNG, JPG, WEBP
                   </p>
@@ -131,16 +178,61 @@ export default function AddProduct() {
           ))}
         </div>
 
-        <textarea name="intro" value={form.intro} onChange={handleChange} placeholder="Intro Description" className="input min-h-[90px]" />
-        <textarea name="ingredients" value={form.ingredients} onChange={handleChange} placeholder="Ingredients - one per line" className="input min-h-[120px]" />
-        <textarea name="process" value={form.process} onChange={handleChange} placeholder="Process" className="input min-h-[90px]" />
-        <textarea name="benefits" value={form.benefits} onChange={handleChange} placeholder="Benefits - one per line" className="input min-h-[120px]" />
-        <textarea name="note" value={form.note} onChange={handleChange} placeholder="Note" className="input min-h-[80px]" />
-        <input name="suitable" value={form.suitable} onChange={handleChange} placeholder="Suitable For" className="input" />
+        <textarea
+          name="intro"
+          value={form.intro}
+          onChange={handleChange}
+          placeholder="Intro Description"
+          className="input min-h-[90px]"
+        />
 
-        <button className="bg-[#2f4f2f] text-white px-8 py-3 rounded-xl flex items-center gap-2 hover:bg-[#b48a2c] transition">
+        <textarea
+          name="ingredients"
+          value={form.ingredients}
+          onChange={handleChange}
+          placeholder="Ingredients - one per line"
+          className="input min-h-[120px]"
+        />
+
+        <textarea
+          name="process"
+          value={form.process}
+          onChange={handleChange}
+          placeholder="Process"
+          className="input min-h-[90px]"
+        />
+
+        <textarea
+          name="benefits"
+          value={form.benefits}
+          onChange={handleChange}
+          placeholder="Benefits - one per line"
+          className="input min-h-[120px]"
+        />
+
+        <textarea
+          name="note"
+          value={form.note}
+          onChange={handleChange}
+          placeholder="Note"
+          className="input min-h-[80px]"
+        />
+
+        <input
+          name="suitable"
+          value={form.suitable}
+          onChange={handleChange}
+          placeholder="Suitable For"
+          className="input"
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-[#2f4f2f] text-white px-8 py-3 rounded-xl flex items-center gap-2 hover:bg-[#b48a2c] transition disabled:opacity-60"
+        >
           <ImagePlus size={18} />
-          Save Product
+          {loading ? "Saving..." : "Save Product"}
         </button>
       </form>
 
@@ -160,6 +252,6 @@ export default function AddProduct() {
           box-shadow: 0 0 0 3px rgba(180, 138, 44, 0.15);
         }
       `}</style>
-    </AdminLayout>
+    </div>
   );
 }

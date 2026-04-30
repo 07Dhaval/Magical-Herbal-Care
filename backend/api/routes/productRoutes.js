@@ -18,7 +18,10 @@ const storage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const uniqueName =
-      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
     cb(null, uniqueName);
   },
 });
@@ -29,32 +32,35 @@ const getImageUrl = (req, filename) => {
   return `${req.protocol}://${req.get("host")}/uploads/products/${filename}`;
 };
 
-// GET all products
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json({ success: true, products });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch products" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch products" });
   }
 });
 
-// GET single product
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({ success: true, product });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch product" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch product" });
   }
 });
 
-// ADD product with local image upload
 router.post("/", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description } = req.body;
@@ -90,7 +96,6 @@ router.post("/", upload.array("images", 5), async (req, res) => {
   }
 });
 
-// UPDATE product
 router.put("/:id", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description, oldImages } = req.body;
@@ -111,7 +116,7 @@ router.put("/:id", upload.array("images", 5), async (req, res) => {
         images: imageUrls,
         description: JSON.parse(description || "{}"),
       },
-      { new: true }
+      { new: true },
     );
 
     res.json({ success: true, product });
@@ -120,13 +125,14 @@ router.put("/:id", upload.array("images", 5), async (req, res) => {
   }
 });
 
-// DELETE product
 router.delete("/:id", async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Product deleted" });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to delete product" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete product" });
   }
 });
 

@@ -92,10 +92,11 @@ async function paymentSuccessHandler(req, res) {
       customer,
       items,
       total,
+      paymentMethod: "Razorpay",
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
       paymentStatus: "paid",
-      status: "paid",
+      status: "confirmed",
     });
 
     return res.status(200).json({
@@ -113,6 +114,43 @@ async function paymentSuccessHandler(req, res) {
   }
 }
 
+async function codOrderHandler(req, res) {
+  try {
+    const { customer, items, total } = req.body || {};
+
+    if (!customer || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer and items are required",
+      });
+    }
+
+    const newOrder = await Order.create({
+      customer,
+      items,
+      total,
+      paymentMethod: "Cash on Delivery",
+      paymentId: "",
+      orderId: `COD_${Date.now()}`,
+      paymentStatus: "pending",
+      status: "pending",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "COD order placed successfully",
+      order: newOrder,
+    });
+  } catch (error) {
+    console.error("COD order error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to place COD order",
+    });
+  }
+}
+
 async function paymentLinkCallbackHandler(req, res) {
   return res.redirect("/order-success");
 }
@@ -120,5 +158,6 @@ async function paymentLinkCallbackHandler(req, res) {
 module.exports = {
   createOrderHandler,
   paymentSuccessHandler,
+  codOrderHandler,
   paymentLinkCallbackHandler,
-};
+};  

@@ -46,7 +46,7 @@ export default function AboutSection() {
 
             <p className="mt-6 text-[#2f4f2f] text-[15px] sm:text-[16px] leading-8 max-w-[620px]">
               We are a passionate herbal care brand dedicated to providing
-              natural and effective solutions for your hair and skin. Ouyr
+              natural and effective solutions for your hair and skin. Our
               products are carefully crafted using high-quality herbal
               ingredients, keeping traditional remedies and modern needs in
               mind. We believe in the power of nature and aim to create safe,

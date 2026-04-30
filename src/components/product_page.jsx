@@ -3,6 +3,7 @@ import { Star, X } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 import { products } from "../data/products";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const LOGIN_DURATION = 5 * 60 * 1000;
 
 const getRegisteredUser = () => {
@@ -37,9 +38,13 @@ export default function ProductDetails() {
   const [pendingAction, setPendingAction] = useState("");
   const [userData, setUserData] = useState(getRegisteredUser());
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
   const [loginData, setLoginData] = useState({
     name: "",
-    mobile: "",
+    email: "",
+    otp: "",
   });
 
   React.useEffect(() => {
@@ -107,33 +112,106 @@ export default function ProductDetails() {
     setShowLoginForm(true);
   };
 
-  const handleRegister = () => {
+  const sendOtp = async () => {
     if (!loginData.name.trim()) {
       alert("Please enter your name");
       return;
     }
 
-    if (!/^\d{10}$/.test(loginData.mobile)) {
-      alert("Enter valid 10 digit mobile number");
+    if (!/^\S+@\S+\.\S+$/.test(loginData.email)) {
+      alert("Enter valid email address");
       return;
     }
 
-    const user = {
-      name: loginData.name,
-      mobile: loginData.mobile,
-      expiryTime: Date.now() + LOGIN_DURATION,
-    };
+    try {
+      setOtpLoading(true);
 
-    localStorage.setItem("registeredUser", JSON.stringify(user));
-    setUserData(user);
+      const res = await fetch(`${API_BASE_URL}/api/otp/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginData.email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Failed to send OTP");
+      }
+
+      setOtpSent(true);
+      alert("OTP sent successfully");
+    } catch (error) {
+      alert(error.message || "OTP send failed");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!loginData.otp.trim()) {
+      alert("Please enter OTP");
+      return;
+    }
+
+    try {
+      setOtpLoading(true);
+
+      const res = await fetch(`${API_BASE_URL}/api/otp/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginData.email,
+          otp: loginData.otp,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Invalid OTP");
+      }
+
+      const user = {
+        name: loginData.name,
+        email: loginData.email,
+        expiryTime: Date.now() + LOGIN_DURATION,
+      };
+
+      localStorage.setItem("registeredUser", JSON.stringify(user));
+      setUserData(user);
+      setShowLoginForm(false);
+
+      if (pendingAction === "cart") addProductToCart();
+      if (pendingAction === "wishlist") addProductToWishlist();
+
+      setPendingAction("");
+      setOtpSent(false);
+      setLoginData({
+        name: "",
+        email: "",
+        otp: "",
+      });
+    } catch (error) {
+      alert(error.message || "OTP verification failed");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const closeOtpPopup = () => {
     setShowLoginForm(false);
-
-    if (pendingAction === "cart") addProductToCart();
-    if (pendingAction === "wishlist") addProductToWishlist();
-
+    setPendingAction("");
+    setOtpSent(false);
     setLoginData({
       name: "",
-      mobile: "",
+      email: "",
+      otp: "",
     });
   };
 
@@ -318,18 +396,18 @@ export default function ProductDetails() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
           <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
             <button
-              onClick={() => setShowLoginForm(false)}
+              onClick={closeOtpPopup}
               className="absolute top-4 right-4 text-[#2f4f2f]"
             >
               <X size={20} />
             </button>
 
             <h2 className="text-[24px] font-semibold text-[#b48a2c] mb-2">
-              Mobile Registration
+              Email OTP Verification
             </h2>
 
             <p className="text-[14px] text-[#666] mb-5">
-              Please enter your name and mobile number before adding product.
+              Please verify your email before adding product.
             </p>
 
             <div className="space-y-4">
@@ -337,35 +415,63 @@ export default function ProductDetails() {
                 type="text"
                 placeholder="Enter Your Name"
                 value={loginData.name}
+                disabled={otpSent}
                 onChange={(e) =>
                   setLoginData((prev) => ({
                     ...prev,
                     name: e.target.value,
                   }))
                 }
-                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 
               <input
-                type="tel"
-                placeholder="Enter Mobile Number"
-                value={loginData.mobile}
-                maxLength="10"
+                type="email"
+                placeholder="Enter Email Address"
+                value={loginData.email}
+                disabled={otpSent}
                 onChange={(e) =>
                   setLoginData((prev) => ({
                     ...prev,
-                    mobile: e.target.value.replace(/\D/g, ""),
+                    email: e.target.value,
                   }))
                 }
-                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+                className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 
-              <button
-                onClick={handleRegister}
-                className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition"
-              >
-                Continue
-              </button>
+              {otpSent && (
+                <input
+                  type="tel"
+                  placeholder="Enter OTP"
+                  value={loginData.otp}
+                  maxLength="6"
+                  onChange={(e) =>
+                    setLoginData((prev) => ({
+                      ...prev,
+                      otp: e.target.value.replace(/\D/g, ""),
+                    }))
+                  }
+                  className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f]"
+                />
+              )}
+
+              {!otpSent ? (
+                <button
+                  onClick={sendOtp}
+                  disabled={otpLoading}
+                  className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition disabled:opacity-60"
+                >
+                  {otpLoading ? "Sending OTP..." : "Send OTP"}
+                </button>
+              ) : (
+                <button
+                  onClick={verifyOtp}
+                  disabled={otpLoading}
+                  className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition disabled:opacity-60"
+                >
+                  {otpLoading ? "Verifying..." : "Verify & Continue"}
+                </button>
+              )}
             </div>
           </div>
         </div>

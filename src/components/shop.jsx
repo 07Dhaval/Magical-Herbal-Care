@@ -92,7 +92,7 @@ export default function Shop() {
           </h1>
 
           <p className="mt-4 text-[10px] sm:text-[11px] md:text-[12px] text-[#2f4f2f]">
-            Explore our premium Freshiya collection across home care, hair care,
+            Explore our premium Magical Herbal Care by Swati Tiwari collection across home care, hair care,
             skin care, personal care, and wellness products.
           </p>
         </div>
