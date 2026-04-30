@@ -16,12 +16,14 @@ const storage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, uploadDir);
   },
+
   filename(req, file, cb) {
     const uniqueName =
       Date.now() +
       "-" +
       Math.round(Math.random() * 1e9) +
       path.extname(file.originalname);
+
     cb(null, uniqueName);
   },
 });
@@ -32,35 +34,52 @@ const getImageUrl = (req, filename) => {
   return `${req.protocol}://${req.get("host")}/uploads/products/${filename}`;
 };
 
+// GET ALL PRODUCTS
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
-    res.json({ success: true, products });
+
+    res.json({
+      success: true,
+      products,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch products" });
+    console.error("Fetch products error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products",
+    });
   }
 });
 
+// GET SINGLE PRODUCT
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    res.json({ success: true, product });
+    res.json({
+      success: true,
+      product,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch product" });
+    console.error("Fetch product error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch product",
+    });
   }
 });
 
+// ADD PRODUCT
 router.post("/", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description } = req.body;
@@ -87,20 +106,37 @@ router.post("/", upload.array("images", 5), async (req, res) => {
       price: Number(price),
       image: imageUrls[0],
       images: imageUrls,
-      description: JSON.parse(description || "{}"),
+      description: description ? JSON.parse(description) : {},
     });
 
-    res.status(201).json({ success: true, product });
+    res.status(201).json({
+      success: true,
+      product,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Add product error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to add product",
+    });
   }
 });
 
+// UPDATE PRODUCT
 router.put("/:id", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description, oldImages } = req.body;
 
-    let imageUrls = oldImages ? JSON.parse(oldImages) : [];
+    let imageUrls = [];
+
+    if (oldImages) {
+      try {
+        imageUrls = JSON.parse(oldImages);
+      } catch {
+        imageUrls = [];
+      }
+    }
 
     if (req.files && req.files.length > 0) {
       imageUrls = req.files.map((file) => getImageUrl(req, file.filename));
@@ -112,27 +148,57 @@ router.put("/:id", upload.array("images", 5), async (req, res) => {
         name,
         category,
         price: Number(price),
-        image: imageUrls[0],
+        image: imageUrls[0] || "",
         images: imageUrls,
-        description: JSON.parse(description || "{}"),
+        description: description ? JSON.parse(description) : {},
       },
-      { new: true },
+      { new: true, runValidators: true }
     );
 
-    res.json({ success: true, product });
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      product,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Update product error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update product",
+    });
   }
 });
 
+// DELETE PRODUCT
 router.delete("/:id", async (req, res) => {
   try {
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Product deleted" });
+    const product = await Product.findByIdAndDelete(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Product deleted",
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to delete product" });
+    console.error("Delete product error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete product",
+    });
   }
 });
 
