@@ -10,11 +10,9 @@ const generateOtp = () => {
 
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    family: 4,
-    requireTLS: true,
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -22,9 +20,6 @@ const createTransporter = () => {
     connectionTimeout: 20000,
     greetingTimeout: 20000,
     socketTimeout: 20000,
-    tls: {
-      rejectUnauthorized: false,
-    },
   });
 };
 
