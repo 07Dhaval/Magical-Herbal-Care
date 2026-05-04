@@ -8,10 +8,13 @@ const otpSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+
     otp: {
       type: String,
       required: true,
+      trim: true,
     },
+
     expiresAt: {
       type: Date,
       required: true,
@@ -22,4 +25,4 @@ const otpSchema = new mongoose.Schema(
 
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-module.exports = mongoose.model("Otp", otpSchema);
+module.exports = mongoose.models.Otp || mongoose.model("Otp", otpSchema);
