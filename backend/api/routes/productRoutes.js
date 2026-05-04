@@ -19,18 +19,32 @@ const storage = multer.diskStorage({
 
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+
+    const uniqueName =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      ext;
+
     cb(null, uniqueName);
   },
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPG, PNG and WEBP images are allowed"), false);
+    cb(
+      new Error("Only JPG, PNG and WEBP images are allowed"),
+      false
+    );
   }
 };
 
@@ -38,12 +52,15 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 5 * 1024 * 1024, // 5MB each image
+    files: 5,
   },
 });
 
 const getImageUrl = (req, filename) => {
-  return `${req.protocol}://${req.get("host")}/uploads/products/${filename}`;
+  return `${req.protocol}://${req.get(
+    "host"
+  )}/uploads/products/${filename}`;
 };
 
 const safeJsonParse = (value, fallback) => {
@@ -56,14 +73,16 @@ const safeJsonParse = (value, fallback) => {
 
 const cleanImages = (images) => {
   if (!Array.isArray(images)) return [];
-
   return images.filter(Boolean).slice(0, 5);
 };
+
 
 // GET ALL PRODUCTS
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const products = await Product.find().sort({
+      createdAt: -1,
+    });
 
     res.json({
       success: true,
@@ -79,10 +98,13 @@ router.get("/", async (req, res) => {
   }
 });
 
+
 // GET SINGLE PRODUCT
 router.get("/:id", async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -105,15 +127,45 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ADD PRODUCT
-router.post("/", upload.array("images", 5), async (req, res) => {
-  try {
-    const { name, category, price, description } = req.body;
 
-    if (!name || !category || price === undefined || price === "") {
+// ADD PRODUCT
+router.post("/", (req, res, next) => {
+  upload.array("images", 5)(
+    req,
+    res,
+    function (err) {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Each image must be under 5MB (max 5 images allowed)",
+        });
+      }
+
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      next();
+    }
+  );
+}, async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      price,
+      description,
+    } = req.body;
+
+    if (!name || !category || !price) {
       return res.status(400).json({
         success: false,
-        message: "Name, category and price are required",
+        message:
+          "Name, category and price are required",
       });
     }
 
@@ -122,19 +174,28 @@ router.post("/", upload.array("images", 5), async (req, res) => {
     if (Number.isNaN(numericPrice)) {
       return res.status(400).json({
         success: false,
-        message: "Price must be a valid number",
+        message:
+          "Price must be a valid number",
       });
     }
 
-    if (!req.files || req.files.length === 0) {
+    if (
+      !req.files ||
+      req.files.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        message: "At least one product image is required",
+        message:
+          "At least one product image is required",
       });
     }
 
-    const imageUrls = req.files.map((file) => getImageUrl(req, file.filename));
-    const parsedDescription = safeJsonParse(description, {});
+    const imageUrls = req.files.map((file) =>
+      getImageUrl(req, file.filename)
+    );
+
+    const parsedDescription =
+      safeJsonParse(description, {});
 
     const product = await Product.create({
       name: name.trim(),
@@ -147,115 +208,142 @@ router.post("/", upload.array("images", 5), async (req, res) => {
 
     res.status(201).json({
       success: true,
+      message:
+        "Product added successfully",
       product,
     });
   } catch (error) {
-    console.error("Add product error:", error);
+    console.error(
+      "Add product error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to add product",
+      message:
+        error.message ||
+        "Failed to add product",
     });
   }
 });
+
 
 // UPDATE PRODUCT
 router.put("/:id", upload.array("images", 5), async (req, res) => {
   try {
-    const { name, category, price, description, oldImages } = req.body;
+    const {
+      name,
+      category,
+      price,
+      description,
+      oldImages,
+    } = req.body;
 
-    if (!name || !category || price === undefined || price === "") {
-      return res.status(400).json({
-        success: false,
-        message: "Name, category and price are required",
-      });
-    }
-
-    const numericPrice = Number(price);
-
-    if (Number.isNaN(numericPrice)) {
-      return res.status(400).json({
-        success: false,
-        message: "Price must be a valid number",
-      });
-    }
-
-    let imageUrls = cleanImages(safeJsonParse(oldImages, []));
-
-    if (req.files && req.files.length > 0) {
-      const newImageUrls = req.files.map((file) => getImageUrl(req, file.filename));
-
-      imageUrls = imageUrls.map((oldImage, index) => {
-        return newImageUrls[index] || oldImage;
-      });
-
-      newImageUrls.forEach((newImage) => {
-        if (!imageUrls.includes(newImage)) {
-          imageUrls.push(newImage);
-        }
-      });
-
-      imageUrls = cleanImages(imageUrls);
-    }
-
-    const parsedDescription = safeJsonParse(description, {});
-
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      {
-        name: name.trim(),
-        category: category.trim(),
-        price: numericPrice,
-        image: imageUrls[0] || "",
-        images: imageUrls,
-        description: parsedDescription,
-      },
-      { new: true, runValidators: true }
+    let imageUrls = cleanImages(
+      safeJsonParse(oldImages, [])
     );
+
+    if (
+      req.files &&
+      req.files.length > 0
+    ) {
+      const newImageUrls =
+        req.files.map((file) =>
+          getImageUrl(
+            req,
+            file.filename
+          )
+        );
+
+      imageUrls = cleanImages([
+        ...imageUrls,
+        ...newImageUrls,
+      ]);
+    }
+
+    const parsedDescription =
+      safeJsonParse(description, {});
+
+    const product =
+      await Product.findByIdAndUpdate(
+        req.params.id,
+        {
+          name,
+          category,
+          price: Number(price),
+          image:
+            imageUrls[0] || "",
+          images: imageUrls,
+          description:
+            parsedDescription,
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message:
+          "Product not found",
       });
     }
 
     res.json({
       success: true,
+      message:
+        "Product updated successfully",
       product,
     });
   } catch (error) {
-    console.error("Update product error:", error);
+    console.error(
+      "Update product error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to update product",
+      message:
+        error.message ||
+        "Failed to update product",
     });
   }
 });
 
+
 // DELETE PRODUCT
 router.delete("/:id", async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product =
+      await Product.findByIdAndDelete(
+        req.params.id
+      );
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message:
+          "Product not found",
       });
     }
 
     res.json({
       success: true,
-      message: "Product deleted successfully",
+      message:
+        "Product deleted successfully",
     });
   } catch (error) {
-    console.error("Delete product error:", error);
+    console.error(
+      "Delete product error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
-      message: "Failed to delete product",
+      message:
+        "Failed to delete product",
     });
   }
 });
