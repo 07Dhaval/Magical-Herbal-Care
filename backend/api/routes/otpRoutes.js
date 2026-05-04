@@ -8,11 +8,30 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    family: 4, // Render IPv6 issue fix
+    requireTLS: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      minVersion: "TLSv1.2",
+      rejectUnauthorized: true,
+    },
+  });
+};
+
+// SEND OTP
 router.post("/send", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
 
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address",
@@ -36,19 +55,9 @@ router.post("/send", async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      family: 4,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    const transporter = createTransporter();
+
+    await transporter.verify();
 
     await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
@@ -57,10 +66,11 @@ router.post("/send", async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding:20px; background:#fffdf7;">
           <div style="max-width:500px; margin:auto; border:1px solid #e7dcc3; border-radius:12px; padding:24px;">
-            <h2 style="color:#2f4f2f;">Magical Herbal Care</h2>
-            <p style="color:#456b3d;">Your OTP verification code is:</p>
+            <h2 style="color:#2f4f2f; margin-bottom:10px;">Magical Herbal Care</h2>
+            <p style="color:#456b3d; font-size:16px;">Your OTP verification code is:</p>
             <h1 style="color:#b48a2c; letter-spacing:4px; font-size:34px;">${otp}</h1>
             <p style="color:#456b3d;">This OTP is valid for 5 minutes.</p>
+            <p style="color:#777; font-size:13px;">Please do not share this OTP with anyone.</p>
           </div>
         </div>
       `,
@@ -80,6 +90,7 @@ router.post("/send", async (req, res) => {
   }
 });
 
+// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
