@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ImagePlus, UploadCloud } from "lucide-react";
 
 const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
 
 const RENDER_API =
   import.meta.env.VITE_RENDER_API_BASE_URL ||
@@ -100,39 +101,69 @@ export default function AddProduct() {
 
       const description = {
         intro: form.intro.trim(),
-        ingredients: form.ingredients ? cleanLines(form.ingredients) : [],
+        ingredients: form.ingredients
+          ? cleanLines(form.ingredients)
+          : [],
         process: form.process.trim(),
-        benefits: form.benefits ? cleanLines(form.benefits) : [],
+        benefits: form.benefits
+          ? cleanLines(form.benefits)
+          : [],
         note: form.note.trim(),
         suitable: form.suitable.trim(),
       };
 
       const formData = new FormData();
+
       formData.append("name", form.name.trim());
       formData.append("category", form.category.trim());
       formData.append("price", Number(form.price));
-      formData.append("description", JSON.stringify(description));
+      formData.append(
+        "description",
+        JSON.stringify(description)
+      );
 
       selectedImages.forEach((image) => {
         formData.append("images", image);
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/products`, {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/api/products`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
-      const data = await res.json();
+      // FIXED RESPONSE HANDLING
+      const text = await res.text();
+
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error(
+          "Backend returned HTML response:",
+          text
+        );
+        throw new Error(
+          "Server error. Please check Render logs."
+        );
+      }
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to add product");
+        throw new Error(
+          data.message || "Failed to add product"
+        );
       }
 
       alert("Product added successfully");
       navigate("/admin/products");
     } catch (error) {
       console.error("Add product error:", error);
-      alert(error.message || "Failed to add product");
+      alert(
+        error.message || "Failed to add product"
+      );
     } finally {
       setLoading(false);
     }
@@ -170,7 +201,6 @@ export default function AddProduct() {
           onChange={handleChange}
           placeholder="Price"
           type="text"
-          inputMode="decimal"
           className="input"
         />
 
@@ -178,33 +208,31 @@ export default function AddProduct() {
           {[0, 1, 2].map((index) => (
             <label
               key={index}
-              className="cursor-pointer border-2 border-dashed border-[#b48a2c]/50 bg-[#fffdf8] rounded-2xl p-4 h-[190px] flex flex-col items-center justify-center text-center hover:bg-[#f8f4ea] transition"
+              className="cursor-pointer border-2 border-dashed border-[#b48a2c]/50 bg-[#fffdf8] rounded-2xl p-4 h-[190px] flex flex-col items-center justify-center text-center"
             >
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleImageChange(index, e.target.files[0])}
+                onChange={(e) =>
+                  handleImageChange(
+                    index,
+                    e.target.files[0]
+                  )
+                }
                 className="hidden"
               />
 
               {previewImages[index] ? (
                 <img
                   src={previewImages[index]}
-                  alt={`Product ${index + 1}`}
+                  alt=""
                   className="w-full h-full object-contain rounded-xl"
                 />
               ) : (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-[#2f4f2f] text-white flex items-center justify-center mb-3">
-                    <UploadCloud size={24} />
-                  </div>
-
-                  <h3 className="text-[#2f4f2f] font-semibold">
+                  <UploadCloud size={24} />
+                  <p className="mt-2">
                     Upload Image {index + 1}
-                  </h3>
-
-                  <p className="text-[#b48a2c] text-sm mt-1">
-                    PNG, JPG, WEBP
                   </p>
                 </>
               )}
@@ -224,7 +252,7 @@ export default function AddProduct() {
           name="ingredients"
           value={form.ingredients}
           onChange={handleChange}
-          placeholder="Ingredients - one per line"
+          placeholder="Ingredients"
           className="input min-h-[120px]"
         />
 
@@ -240,7 +268,7 @@ export default function AddProduct() {
           name="benefits"
           value={form.benefits}
           onChange={handleChange}
-          placeholder="Benefits - one per line"
+          placeholder="Benefits"
           className="input min-h-[120px]"
         />
 
@@ -263,7 +291,7 @@ export default function AddProduct() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-[#2f4f2f] text-white px-8 py-3 rounded-xl flex items-center gap-2 hover:bg-[#b48a2c] transition disabled:opacity-60"
+          className="bg-[#2f4f2f] text-white px-8 py-3 rounded-xl flex items-center gap-2"
         >
           <ImagePlus size={18} />
           {loading ? "Saving..." : "Save Product"}
@@ -279,11 +307,6 @@ export default function AddProduct() {
           outline: none;
           color: #2f4f2f;
           background: #fffdf8;
-        }
-
-        .input:focus {
-          border-color: #b48a2c;
-          box-shadow: 0 0 0 3px rgba(180, 138, 44, 0.15);
         }
       `}</style>
     </div>

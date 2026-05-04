@@ -4,7 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 
 const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
 
 const RENDER_API =
   import.meta.env.VITE_RENDER_API_BASE_URL ||

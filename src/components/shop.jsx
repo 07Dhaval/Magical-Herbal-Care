@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 const getApiBaseUrl = () => {
   const localApi =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
 
   const liveApi =
     import.meta.env.VITE_RENDER_API_BASE_URL ||

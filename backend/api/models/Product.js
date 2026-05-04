@@ -4,21 +4,19 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Product name is required"],
+      required: true,
       trim: true,
     },
 
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: true,
       trim: true,
-      default: "",
     },
 
     price: {
       type: Number,
-      required: [true, "Price is required"],
-      min: [0, "Price cannot be negative"],
+      required: true,
       default: 0,
     },
 
@@ -62,12 +60,6 @@ const productSchema = new mongoose.Schema(
     images: {
       type: [String],
       default: [],
-      validate: {
-        validator: function (value) {
-          return value.length <= 5;
-        },
-        message: "Maximum 5 images allowed",
-      },
     },
   },
   {
@@ -75,13 +67,19 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Auto set main image from images array
+// FIXED PRE SAVE HOOK
 productSchema.pre("save", function (next) {
-  if (!this.image && this.images.length > 0) {
-    this.image = this.images[0];
-  }
+  try {
+    if (!this.image && this.images.length > 0) {
+      this.image = this.images[0];
+    }
 
-  next();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-module.exports = mongoose.model("Product", productSchema);
+module.exports =
+  mongoose.models.Product ||
+  mongoose.model("Product", productSchema);
