@@ -67,16 +67,13 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// FIXED PRE SAVE HOOK
-productSchema.pre("save", function (next) {
-  try {
-    if (!this.image && this.images.length > 0) {
-      this.image = this.images[0];
-    }
-
-    next();
-  } catch (error) {
-    next(error);
+/*
+ FIX:
+ Do NOT use next() in async style incorrectly
+*/
+productSchema.pre("save", function () {
+  if (!this.image && this.images.length > 0) {
+    this.image = this.images[0];
   }
 });
 
