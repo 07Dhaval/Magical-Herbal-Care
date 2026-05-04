@@ -4,8 +4,9 @@ const Otp = require("../models/Otp");
 
 const router = express.Router();
 
-const generateOtp = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 router.post("/send", async (req, res) => {
   try {
@@ -36,10 +37,16 @@ router.post("/send", async (req, res) => {
     });
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      family: 4,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
       },
     });
 
@@ -48,16 +55,18 @@ router.post("/send", async (req, res) => {
       to: email,
       subject: "Your OTP Verification Code",
       html: `
-        <div style="font-family: Arial; padding: 20px;">
-          <h2 style="color:#2f4f2f;">Magical Herbal Care</h2>
-          <p>Your OTP verification code is:</p>
-          <h1 style="color:#b48a2c; letter-spacing:4px;">${otp}</h1>
-          <p>This OTP is valid for 5 minutes.</p>
+        <div style="font-family: Arial, sans-serif; padding:20px; background:#fffdf7;">
+          <div style="max-width:500px; margin:auto; border:1px solid #e7dcc3; border-radius:12px; padding:24px;">
+            <h2 style="color:#2f4f2f;">Magical Herbal Care</h2>
+            <p style="color:#456b3d;">Your OTP verification code is:</p>
+            <h1 style="color:#b48a2c; letter-spacing:4px; font-size:34px;">${otp}</h1>
+            <p style="color:#456b3d;">This OTP is valid for 5 minutes.</p>
+          </div>
         </div>
       `,
     });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
@@ -98,7 +107,7 @@ router.post("/verify", async (req, res) => {
 
     await Otp.deleteMany({ email });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "OTP verified successfully",
     });
