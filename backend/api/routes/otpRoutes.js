@@ -10,19 +10,24 @@ const generateOtp = () => {
 
 const createTransporter = () => {
   return nodemailer.createTransport({
-    service: "gmail",
-    pool: false,
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    family: 4,
+    requireTLS: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 };
 
-// SEND OTP
 router.post("/send", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -62,11 +67,10 @@ router.post("/send", async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding:20px; background:#fffdf7;">
           <div style="max-width:500px; margin:auto; border:1px solid #e7dcc3; border-radius:12px; padding:24px;">
-            <h2 style="color:#2f4f2f; margin-bottom:10px;">Magical Herbal Care</h2>
-            <p style="color:#456b3d; font-size:16px;">Your OTP verification code is:</p>
-            <h1 style="color:#b48a2c; letter-spacing:4px; font-size:34px;">${otp}</h1>
-            <p style="color:#456b3d;">This OTP is valid for 5 minutes.</p>
-            <p style="color:#777; font-size:13px;">Please do not share this OTP with anyone.</p>
+            <h2 style="color:#2f4f2f;">Magical Herbal Care</h2>
+            <p>Your OTP verification code is:</p>
+            <h1 style="color:#b48a2c; letter-spacing:4px;">${otp}</h1>
+            <p>This OTP is valid for 5 minutes.</p>
           </div>
         </div>
       `,
@@ -88,7 +92,6 @@ router.post("/send", async (req, res) => {
   }
 });
 
-// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
