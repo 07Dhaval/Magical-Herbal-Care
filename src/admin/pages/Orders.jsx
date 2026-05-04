@@ -1,21 +1,40 @@
 import { useEffect, useState } from "react";
 
-const API_BASE_URL =
+const LOCAL_API =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
+const API_BASE_URL = (
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
+).replace(/\/$/, "");
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getOrderId = (order) => order?._id || order?.id;
+
   const getPrice = (value) => {
     if (typeof value === "number") return value;
     if (!value) return 0;
-    const match = String(value).replace(/,/g, "").match(/\d+(\.\d+)?/);
+
+    const match = String(value)
+      .replace(/,/g, "")
+      .match(/\d+(\.\d+)?/);
+
     return match ? Number(match[0]) : 0;
   };
 
   const getOrderTotal = (order) => {
-    const savedTotal = getPrice(order.totalAmount || order.total || order.amount);
+    const savedTotal = getPrice(
+      order.totalAmount || order.total || order.amount
+    );
 
     if (savedTotal > 0) return savedTotal;
 
@@ -35,11 +54,19 @@ export default function Orders() {
       const res = await fetch(`${API_BASE_URL}/api/orders`);
       const data = await res.json();
 
-      if (data.success) {
+      if (
+        res.ok &&
+        data.success &&
+        Array.isArray(data.orders)
+      ) {
         setOrders(data.orders);
+      } else {
+        setOrders([]);
       }
     } catch (error) {
       console.error("Admin orders fetch error:", error);
+      setOrders([]);
+      alert("Backend not connected. Please check server.");
     } finally {
       setLoading(false);
     }
@@ -50,18 +77,37 @@ export default function Orders() {
   }, []);
 
   const updateStatus = async (id, orderStatus) => {
+    if (!id) return;
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderStatus }),
-      });
+      let res = await fetch(
+        `${API_BASE_URL}/api/orders/${id}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderStatus }),
+        }
+      );
+
+      // fallback if backend uses /:id route
+      if (!res.ok) {
+        res = await fetch(
+          `${API_BASE_URL}/api/orders/${id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ orderStatus }),
+          }
+        );
+      }
 
       const data = await res.json();
 
-      if (data.success) {
+      if (res.ok && data.success) {
         fetchOrders();
       } else {
         alert(data.message || "Status update failed");
@@ -72,118 +118,82 @@ export default function Orders() {
     }
   };
 
+  const getPaymentBadge = (status) => {
+    if (status === "Paid") {
+      return "bg-green-100 text-green-700";
+    }
+
+    if (status === "Failed") {
+      return "bg-red-100 text-red-700";
+    }
+
+    return "bg-[#f8f4ea] text-[#2f4f2f]";
+  };
+
+  const getOrderBadge = (status) => {
+    if (status === "Delivered") {
+      return "bg-green-100 text-green-700";
+    }
+
+    if (status === "Cancelled") {
+      return "bg-red-100 text-red-700";
+    }
+
+    if (status === "Processing") {
+      return "bg-yellow-100 text-yellow-700";
+    }
+
+    return "bg-[#f8f4ea] text-[#2f4f2f]";
+  };
+
   const printInvoice = (order) => {
     const invoiceWindow = window.open("", "_blank");
+
+    if (!invoiceWindow) {
+      alert("Please allow popup to print invoice.");
+      return;
+    }
+
     const orderTotal = getOrderTotal(order);
 
     invoiceWindow.document.write(`
       <html>
         <head>
-          <title>Invoice - ${order.orderNumber || order._id}</title>
+          <title>Invoice</title>
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              background: #f8f4ea;
-              color: #2f4f2f;
-              padding: 30px;
+            body{
+              font-family:Arial;
+              padding:30px;
+              background:#f8f4ea;
             }
-
-            .invoice-box {
-              max-width: 850px;
-              margin: auto;
-              background: #fff;
-              padding: 30px;
-              border-radius: 16px;
-              border: 1px solid #e7dcc3;
+            .box{
+              background:white;
+              padding:25px;
+              border-radius:12px;
             }
-
-            .top {
-              text-align: center;
-              border-bottom: 1px solid #e7dcc3;
-              padding-bottom: 18px;
-              margin-bottom: 20px;
+            table{
+              width:100%;
+              border-collapse:collapse;
+              margin-top:20px;
             }
-
-            h1 {
-              color: #b48a2c;
-              margin: 0;
+            th,td{
+              border:1px solid #ddd;
+              padding:10px;
             }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-
-            th, td {
-              border: 1px solid #e7dcc3;
-              padding: 12px;
-              text-align: left;
-              font-size: 14px;
-            }
-
-            th {
-              background: #f1e6ce;
-              color: #b48a2c;
-            }
-
-            .info {
-              line-height: 1.8;
-            }
-
-            .total {
-              text-align: right;
-              font-size: 20px;
-              font-weight: bold;
-              color: #b48a2c;
-              margin-top: 20px;
-            }
-
-            .btn {
-              margin-top: 24px;
-              background: #2f4f2f;
-              color: white;
-              border: none;
-              padding: 12px 24px;
-              border-radius: 10px;
-              cursor: pointer;
-            }
-
-            @media print {
-              body {
-                background: white;
-              }
-
-              .btn {
-                display: none;
-              }
+            th{
+              background:#f1e6ce;
             }
           </style>
         </head>
-
         <body>
-          <div class="invoice-box">
-            <div class="top">
-              <h1>Magical Herbal Care</h1>
-              <h2>Invoice</h2>
-            </div>
+          <div class="box">
+            <h1 style="color:#b48a2c;">Magical Herbal Care</h1>
+            <h2>Invoice</h2>
 
-            <div class="info">
-              <p><b>Order ID:</b> ${order.orderNumber || order._id}</p>
-              <p><b>Date:</b> ${
-                order.createdAt
-                  ? new Date(order.createdAt).toLocaleDateString()
-                  : ""
-              }</p>
-              <p><b>Customer:</b> ${order.customer?.name || ""}</p>
-              <p><b>Email:</b> ${order.customer?.email || ""}</p>
-              <p><b>Phone:</b> ${order.customer?.phone || ""}</p>
-              <p><b>Address:</b> ${order.customer?.address || ""}, ${
-      order.customer?.city || ""
-    }, ${order.customer?.state || ""} - ${order.customer?.pincode || ""}</p>
-              <p><b>Payment:</b> ${order.paymentStatus || ""}</p>
-              <p><b>Status:</b> ${order.orderStatus || ""}</p>
-            </div>
+            <p><b>Order ID:</b> ${order.orderNumber || getOrderId(order)}</p>
+            <p><b>Customer:</b> ${order.customer?.name || ""}</p>
+            <p><b>Email:</b> ${order.customer?.email || ""}</p>
+            <p><b>Phone:</b> ${order.customer?.phone || ""}</p>
 
             <table>
               <thead>
@@ -203,10 +213,10 @@ export default function Orders() {
 
                     return `
                       <tr>
-                        <td>${item.name || ""}</td>
+                        <td>${item.name || "Product"}</td>
                         <td>${qty}</td>
-                        <td>Rs. ${price.toFixed(2)}</td>
-                        <td>Rs. ${(price * qty).toFixed(2)}</td>
+                        <td>${price.toFixed(2)}</td>
+                        <td>${(price * qty).toFixed(2)}</td>
                       </tr>
                     `;
                   })
@@ -214,11 +224,13 @@ export default function Orders() {
               </tbody>
             </table>
 
-            <div class="total">
-              Grand Total: Rs. ${orderTotal.toFixed(2)}
-            </div>
+            <h2 style="color:#b48a2c;">
+              Total: Rs. ${orderTotal.toFixed(2)}
+            </h2>
 
-            <button class="btn" onclick="window.print()">Print / Download Invoice</button>
+            <button onclick="window.print()">
+              Print Invoice
+            </button>
           </div>
         </body>
       </html>
@@ -230,7 +242,10 @@ export default function Orders() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h1 className="text-[30px] font-bold text-[#b48a2c]">Orders</h1>
+        <h1 className="text-[30px] font-bold text-[#b48a2c]">
+          Orders
+        </h1>
+
         <p className="mt-1 text-sm text-[#2f4f2f]">
           Manage customer orders and download invoices
         </p>
@@ -255,40 +270,52 @@ export default function Orders() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="py-10 text-center text-[#2f4f2f]">
+                  <td
+                    colSpan="8"
+                    className="py-10 text-center text-[#2f4f2f]"
+                  >
                     Loading orders...
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-10 text-center text-[#2f4f2f]">
+                  <td
+                    colSpan="8"
+                    className="py-10 text-center text-[#2f4f2f]"
+                  >
                     No orders found
                   </td>
                 </tr>
               ) : (
                 orders.map((order) => (
                   <tr
-                    key={order._id}
-                    className="border-t border-[#e7dcc3] align-top text-[#2f4f2f]"
+                    key={getOrderId(order)}
+                    className="border-t border-[#e7dcc3] text-[#2f4f2f]"
                   >
                     <td className="px-4 py-4 font-medium">
-                      {order.orderNumber || order._id}
+                      {order.orderNumber || getOrderId(order)}
                     </td>
 
                     <td className="px-4 py-4">
                       <p className="font-semibold">
                         {order.customer?.name || "Customer"}
                       </p>
-                      <p className="text-xs">{order.customer?.phone}</p>
-                      <p className="text-xs">{order.customer?.email}</p>
+                      <p className="text-xs">
+                        {order.customer?.phone || "-"}
+                      </p>
                     </td>
 
                     <td className="px-4 py-4">
-                      {(order.items || []).map((item, index) => (
-                        <p key={index} className="mb-1 text-xs">
-                          {item.name} × {item.quantity || 1}
-                        </p>
-                      ))}
+                      {(order.items || []).length > 0 ? (
+                        order.items.map((item, index) => (
+                          <p key={index} className="text-xs mb-1">
+                            {item.name || "Product"} ×{" "}
+                            {item.quantity || 1}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-xs">No products</p>
+                      )}
                     </td>
 
                     <td className="px-4 py-4 font-semibold text-[#b48a2c]">
@@ -296,14 +323,22 @@ export default function Orders() {
                     </td>
 
                     <td className="px-4 py-4">
-                      <span className="rounded-full bg-[#f8f4ea] px-3 py-1 text-xs font-medium">
-                        {order.paymentStatus}
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${getPaymentBadge(
+                          order.paymentStatus
+                        )}`}
+                      >
+                        {order.paymentStatus || "Pending"}
                       </span>
                     </td>
 
                     <td className="px-4 py-4">
-                      <span className="rounded-full bg-[#f8f4ea] px-3 py-1 text-xs font-medium">
-                        {order.orderStatus}
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${getOrderBadge(
+                          order.orderStatus
+                        )}`}
+                      >
+                        {order.orderStatus || "Pending"}
                       </span>
                     </td>
 
@@ -311,15 +346,24 @@ export default function Orders() {
                       <select
                         value={order.orderStatus || "Pending"}
                         onChange={(e) =>
-                          updateStatus(order._id, e.target.value)
+                          updateStatus(
+                            getOrderId(order),
+                            e.target.value
+                          )
                         }
-                        className="rounded-lg border border-[#e7dcc3] bg-white px-3 py-2 outline-none"
+                        className="rounded-lg border border-[#e7dcc3] px-3 py-2"
                       >
-                        <option>Pending</option>
-                        <option>Processing</option>
-                        <option>Shipped</option>
-                        <option>Delivered</option>
-                        <option>Cancelled</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">
+                          Processing
+                        </option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">
+                          Delivered
+                        </option>
+                        <option value="Cancelled">
+                          Cancelled
+                        </option>
                       </select>
                     </td>
 

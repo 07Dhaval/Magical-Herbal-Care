@@ -8,21 +8,33 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const isValidEmail = (email) => {
+  return /^\S+@\S+\.\S+$/.test(email);
+};
+
+const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("Email credentials missing in .env file");
+  }
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
+
+// SEND OTP
 router.post("/send", async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
 
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address",
-      });
-    }
-
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      return res.status(500).json({
-        success: false,
-        message: "Email credentials missing in .env file",
       });
     }
 
@@ -36,15 +48,7 @@ router.post("/send", async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.verify();
+    const transporter = createTransporter();
 
     await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
@@ -71,15 +75,16 @@ router.post("/send", async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to send email OTP",
-      error: error.message,
+      message: error.message || "Failed to send email OTP",
     });
   }
 });
 
+// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
 
     if (!email || !otp) {
       return res.status(400).json({
@@ -88,9 +93,16 @@ router.post("/verify", async (req, res) => {
       });
     }
 
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
     const otpRecord = await Otp.findOne({
       email,
-      otp: otp.toString(),
+      otp,
       expiresAt: { $gt: new Date() },
     });
 
@@ -112,8 +124,7 @@ router.post("/verify", async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "OTP verification failed",
-      error: error.message,
+      message: error.message || "OTP verification failed",
     });
   }
 });

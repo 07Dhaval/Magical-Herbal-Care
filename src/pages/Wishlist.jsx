@@ -3,11 +3,30 @@ import { ShoppingCart, X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
 ).replace(/\/$/, "");
 
 const LOGIN_DURATION = 5 * 60 * 1000;
+
+const safeJsonParse = (key, fallback) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
 
 const getProductId = (item) => {
   return String(item?._id || item?.id || item?.productId || "");
@@ -38,7 +57,8 @@ const normalizeProduct = (item) => {
 };
 
 const getRegisteredUser = () => {
-  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+  const savedUser = safeJsonParse("registeredUser", null);
+
   if (!savedUser) return null;
 
   if (Date.now() > savedUser.expiryTime) {
@@ -65,8 +85,7 @@ export default function Wishlist() {
   });
 
   useEffect(() => {
-    const savedWishlist =
-      JSON.parse(localStorage.getItem("wishlistItems")) || [];
+    const savedWishlist = safeJsonParse("wishlistItems", []);
 
     const normalized = savedWishlist
       .map(normalizeProduct)
@@ -99,6 +118,7 @@ export default function Wishlist() {
 
   const removeFromWishlist = (id) => {
     const productId = String(id);
+
     const updatedWishlist = wishlistItems.filter(
       (item) => getProductId(item) !== productId
     );
@@ -110,7 +130,8 @@ export default function Wishlist() {
     const normalizedItem = normalizeProduct(item);
     const productId = getProductId(normalizedItem);
 
-    const existingCart = JSON.parse(localStorage.getItem("cartItems")) || [];
+    const existingCart = safeJsonParse("cartItems", []);
+
     const normalizedCart = existingCart
       .map(normalizeProduct)
       .filter((cartItem) => getProductId(cartItem));

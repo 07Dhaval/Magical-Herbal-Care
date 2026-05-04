@@ -4,13 +4,31 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
 ).replace(/\/$/, "");
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
-
 const LOGIN_DURATION = 5 * 60 * 1000;
+
+const safeJsonParse = (key, fallback) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
 
 const getProductId = (item) =>
   String(item?._id || item?.id || item?.productId || "");
@@ -40,20 +58,16 @@ const normalizeCheckoutItem = (item) => {
 };
 
 const getRegisteredUser = () => {
-  try {
-    const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
-    if (!savedUser) return null;
+  const savedUser = safeJsonParse("registeredUser", null);
 
-    if (Date.now() > savedUser.expiryTime) {
-      localStorage.removeItem("registeredUser");
-      return null;
-    }
+  if (!savedUser) return null;
 
-    return savedUser;
-  } catch {
+  if (Date.now() > savedUser.expiryTime) {
     localStorage.removeItem("registeredUser");
     return null;
   }
+
+  return savedUser;
 };
 
 export default function Checkout() {
@@ -86,12 +100,24 @@ export default function Checkout() {
 
   useEffect(() => {
     const checkoutMode = localStorage.getItem("checkoutMode");
-    const cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
-    const buyNowItem = JSON.parse(localStorage.getItem("buyNowItem"));
+
+    const cartItems = safeJsonParse("cartItems", []);
+    const buyNowData = safeJsonParse("buyNowItem", null);
+
+    const buyNowItem = Array.isArray(buyNowData)
+      ? buyNowData[0]
+      : buyNowData;
 
     const normalizedCartItems = cartItems
       .map(normalizeCheckoutItem)
       .filter((item) => getProductId(item));
+
+    if (checkoutMode === "buyNow" && buyNowItem) {
+      const normalizedBuyNow = normalizeCheckoutItem(buyNowItem);
+      setCheckoutItems([normalizedBuyNow]);
+      localStorage.setItem("buyNowItem", JSON.stringify(normalizedBuyNow));
+      return;
+    }
 
     if (checkoutMode === "cart") {
       setCheckoutItems(normalizedCartItems);
@@ -100,8 +126,11 @@ export default function Checkout() {
       return;
     }
 
-    if (checkoutMode === "buyNow" && buyNowItem) {
-      setCheckoutItems([normalizeCheckoutItem(buyNowItem)]);
+    if (buyNowItem) {
+      const normalizedBuyNow = normalizeCheckoutItem(buyNowItem);
+      setCheckoutItems([normalizedBuyNow]);
+      localStorage.setItem("checkoutMode", "buyNow");
+      localStorage.setItem("buyNowItem", JSON.stringify(normalizedBuyNow));
       return;
     }
 
@@ -109,13 +138,6 @@ export default function Checkout() {
       setCheckoutItems(normalizedCartItems);
       localStorage.setItem("checkoutMode", "cart");
       localStorage.setItem("cartItems", JSON.stringify(normalizedCartItems));
-      localStorage.removeItem("buyNowItem");
-      return;
-    }
-
-    if (buyNowItem) {
-      setCheckoutItems([normalizeCheckoutItem(buyNowItem)]);
-      localStorage.setItem("checkoutMode", "buyNow");
       return;
     }
 
@@ -173,10 +195,9 @@ export default function Checkout() {
 
     if (checkoutMode === "cart") {
       localStorage.setItem("cartItems", JSON.stringify(normalized));
-    }
-
-    if (checkoutMode === "buyNow") {
+    } else {
       localStorage.setItem("buyNowItem", JSON.stringify(normalized[0]));
+      localStorage.setItem("checkoutMode", "buyNow");
     }
 
     window.dispatchEvent(new Event("cartUpdated"));
@@ -570,55 +591,12 @@ export default function Checkout() {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Full Name"
-                  className="input"
-                />
-
-                <input
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email Address"
-                  className="input"
-                />
-
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Phone Number"
-                  maxLength="10"
-                  className="input"
-                />
-
-                <input
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="City"
-                  className="input"
-                />
-
-                <input
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="State"
-                  className="input"
-                />
-
-                <input
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  placeholder="Pincode"
-                  maxLength="6"
-                  className="input"
-                />
+                <input name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className="input" />
+                <input name="email" value={formData.email} onChange={handleChange} placeholder="Email Address" className="input" />
+                <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone Number" maxLength="10" className="input" />
+                <input name="city" value={formData.city} onChange={handleChange} placeholder="City" className="input" />
+                <input name="state" value={formData.state} onChange={handleChange} placeholder="State" className="input" />
+                <input name="pincode" value={formData.pincode} onChange={handleChange} placeholder="Pincode" maxLength="6" className="input" />
               </div>
 
               <textarea
@@ -660,11 +638,7 @@ export default function Checkout() {
                           </p>
 
                           <div className="mt-2 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => decreaseQty(itemId)}
-                              className="w-7 h-7 rounded-full border border-[#e7dcc3] flex items-center justify-center text-[#2f4f2f] hover:bg-[#f8f4ea]"
-                            >
+                            <button type="button" onClick={() => decreaseQty(itemId)} className="qty-btn">
                               <Minus size={13} />
                             </button>
 
@@ -672,11 +646,7 @@ export default function Checkout() {
                               {item.quantity || 1}
                             </span>
 
-                            <button
-                              type="button"
-                              onClick={() => increaseQty(itemId)}
-                              className="w-7 h-7 rounded-full border border-[#e7dcc3] flex items-center justify-center text-[#2f4f2f] hover:bg-[#f8f4ea]"
-                            >
+                            <button type="button" onClick={() => increaseQty(itemId)} className="qty-btn">
                               <Plus size={13} />
                             </button>
 
@@ -691,9 +661,7 @@ export default function Checkout() {
                         </div>
 
                         <p className="text-[14px] font-semibold text-[#b48a2c] whitespace-nowrap">
-                          {formatPrice(
-                            parsePrice(item.price) * Number(item.quantity || 1)
-                          )}
+                          {formatPrice(parsePrice(item.price) * Number(item.quantity || 1))}
                         </p>
                       </div>
                     );
@@ -728,10 +696,7 @@ export default function Checkout() {
       {showLoginForm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
           <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
-            <button
-              onClick={closeOtpPopup}
-              className="absolute top-4 right-4 text-[#2f4f2f]"
-            >
+            <button onClick={closeOtpPopup} className="absolute top-4 right-4 text-[#2f4f2f]">
               <X size={20} />
             </button>
 
@@ -749,12 +714,7 @@ export default function Checkout() {
                 placeholder="Enter Your Name"
                 value={loginData.name}
                 disabled={otpSent}
-                onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
+                onChange={(e) => setLoginData((prev) => ({ ...prev, name: e.target.value }))}
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 
@@ -763,12 +723,7 @@ export default function Checkout() {
                 placeholder="Enter Email Address"
                 value={loginData.email}
                 disabled={otpSent}
-                onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
+                onChange={(e) => setLoginData((prev) => ({ ...prev, email: e.target.value }))}
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 
@@ -789,19 +744,11 @@ export default function Checkout() {
               )}
 
               {!otpSent ? (
-                <button
-                  onClick={sendOtp}
-                  disabled={otpLoading}
-                  className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition disabled:opacity-60"
-                >
+                <button onClick={sendOtp} disabled={otpLoading} className="otp-btn">
                   {otpLoading ? "Sending OTP..." : "Send OTP"}
                 </button>
               ) : (
-                <button
-                  onClick={verifyOtp}
-                  disabled={otpLoading}
-                  className="w-full bg-[#2f4f2f] text-white rounded-xl py-3 font-medium hover:opacity-90 transition disabled:opacity-60"
-                >
+                <button onClick={verifyOtp} disabled={otpLoading} className="otp-btn">
                   {otpLoading ? "Verifying..." : "Verify & Continue"}
                 </button>
               )}
@@ -827,6 +774,34 @@ export default function Checkout() {
         .input:focus {
           border-color: #b48a2c;
           box-shadow: 0 0 0 3px rgba(107, 74, 18, 0.12);
+        }
+
+        .qty-btn {
+          width: 28px;
+          height: 28px;
+          border-radius: 999px;
+          border: 1px solid #e7dcc3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #2f4f2f;
+        }
+
+        .qty-btn:hover {
+          background: #f8f4ea;
+        }
+
+        .otp-btn {
+          width: 100%;
+          background: #2f4f2f;
+          color: white;
+          border-radius: 12px;
+          padding: 12px;
+          font-weight: 500;
+        }
+
+        .otp-btn:disabled {
+          opacity: 0.6;
         }
       `}</style>
     </>

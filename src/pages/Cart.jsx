@@ -4,11 +4,33 @@ import { ShoppingBag, X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
+const API_BASE_URL = (
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
+).replace(/\/$/, "");
+
 const LOGIN_DURATION = 5 * 60 * 1000;
 
+const safeJsonParse = (key, fallback) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
+
 const getRegisteredUser = () => {
-  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+  const savedUser = safeJsonParse("registeredUser", null);
 
   if (!savedUser) return null;
 
@@ -19,6 +41,8 @@ const getRegisteredUser = () => {
 
   return savedUser;
 };
+
+const getItemId = (item) => item._id || item.id;
 
 export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
@@ -38,7 +62,7 @@ export default function Cart() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cartItems")) || [];
+    const savedCart = safeJsonParse("cartItems", []);
     setCartItems(savedCart);
   }, []);
 
@@ -152,18 +176,29 @@ export default function Cart() {
       return;
     }
 
+    localStorage.removeItem("buyNowItem");
     navigate("/checkout");
   };
 
   const removeItem = (id) => {
-    const updated = cartItems.filter((item) => item.id !== id);
+    const updated = cartItems.filter(
+      (item) => String(getItemId(item)) !== String(id)
+    );
+
     setCartItems(updated);
     localStorage.setItem("cartItems", JSON.stringify(updated));
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const handleBuyNow = (item) => {
-    localStorage.setItem("buyNowItem", JSON.stringify([item]));
+    const buyNowProduct = {
+      ...item,
+      id: getItemId(item),
+      _id: item._id || getItemId(item),
+      quantity: item.quantity || 1,
+    };
+
+    localStorage.setItem("buyNowItem", JSON.stringify([buyNowProduct]));
 
     const user = getRegisteredUser();
 
@@ -189,19 +224,26 @@ export default function Cart() {
   };
 
   const parsePrice = (price) => {
-    if (!price) return 0;
+    if (price === undefined || price === null) return 0;
+
+    if (typeof price === "number") return price;
+
     const match = String(price)
       .replace(/,/g, "")
       .match(/\d+(\.\d+)?/);
+
     return match ? parseFloat(match[0]) : 0;
   };
 
   const totalPrice = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + parsePrice(item.price), 0);
+    return cartItems.reduce((sum, item) => {
+      const quantity = Number(item.quantity || 1);
+      return sum + parsePrice(item.price) * quantity;
+    }, 0);
   }, [cartItems]);
 
   const formatPrice = (amount) => {
-    return `Rs. ${amount.toFixed(2)}`;
+    return `Rs. ${Number(amount || 0).toFixed(2)}`;
   };
 
   return (
@@ -234,50 +276,61 @@ export default function Cart() {
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-10 items-start">
               <div className="flex flex-wrap gap-6">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="w-[260px] bg-white rounded-[14px] shadow-sm overflow-hidden border border-[#e7dcc3]"
-                  >
-                    <div className="bg-white h-[240px] flex items-center justify-center p-4">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                      />
+                {cartItems.map((item) => {
+                  const itemId = getItemId(item);
+                  const quantity = Number(item.quantity || 1);
+
+                  return (
+                    <div
+                      key={itemId}
+                      className="w-[260px] bg-white rounded-[14px] shadow-sm overflow-hidden border border-[#e7dcc3]"
+                    >
+                      <div className="bg-white h-[240px] flex items-center justify-center p-4">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      <div className="px-3 pt-3 pb-2">
+                        <h3 className="text-[18px] leading-[1.25] font-semibold text-[#b48a2c]">
+                          {item.name}
+                        </h3>
+
+                        <p className="mt-1 text-[14px] text-[#2f4f2f]">
+                          {item.category}
+                        </p>
+
+                        <p className="mt-3 text-[18px] leading-none font-semibold text-[#2f4f2f]">
+                          {formatPrice(parsePrice(item.price))}
+                        </p>
+
+                        {quantity > 1 && (
+                          <p className="mt-2 text-[13px] text-[#666]">
+                            Qty: {quantity}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="px-4 py-3 border-t border-[#e7dcc3] flex items-center justify-between">
+                        <button
+                          onClick={() => handleBuyNow(item)}
+                          className="bg-[#2f4f2f] hover:opacity-90 transition text-white text-[13px] font-medium px-5 py-2.5 rounded-[8px]"
+                        >
+                          Buy Now
+                        </button>
+
+                        <button
+                          onClick={() => removeItem(itemId)}
+                          className="text-[#b23a3a] text-[16px] font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="px-3 pt-3 pb-2">
-                      <h3 className="text-[18px] leading-[1.25] font-semibold text-[#b48a2c]">
-                        {item.name}
-                      </h3>
-
-                      <p className="mt-1 text-[14px] text-[#2f4f2f]">
-                        {item.category}
-                      </p>
-
-                      <p className="mt-3 text-[18px] leading-none font-semibold text-[#2f4f2f]">
-                        {item.price}
-                      </p>
-                    </div>
-
-                    <div className="px-4 py-3 border-t border-[#e7dcc3] flex items-center justify-between">
-                      <button
-                        onClick={() => handleBuyNow(item)}
-                        className="bg-[#2f4f2f] hover:opacity-90 transition text-white text-[13px] font-medium px-5 py-2.5 rounded-[8px]"
-                      >
-                        Buy Now
-                      </button>
-
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-[#b23a3a] text-[16px] font-medium"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="sticky top-24 bg-white rounded-[14px] shadow-sm border border-[#e7dcc3] p-5">
@@ -286,17 +339,27 @@ export default function Cart() {
                 </h2>
 
                 <div className="space-y-3">
-                  {cartItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start justify-between gap-4 text-[14px] text-[#555]"
-                    >
-                      <p className="line-clamp-1 flex-1">{item.name}</p>
-                      <p className="whitespace-nowrap font-medium text-[#2f4f2f]">
-                        {formatPrice(parsePrice(item.price))}
-                      </p>
-                    </div>
-                  ))}
+                  {cartItems.map((item) => {
+                    const quantity = Number(item.quantity || 1);
+                    const price = parsePrice(item.price);
+                    const itemTotal = price * quantity;
+
+                    return (
+                      <div
+                        key={getItemId(item)}
+                        className="flex items-start justify-between gap-4 text-[14px] text-[#555]"
+                      >
+                        <p className="line-clamp-1 flex-1">
+                          {item.name}
+                          {quantity > 1 ? ` × ${quantity}` : ""}
+                        </p>
+
+                        <p className="whitespace-nowrap font-medium text-[#2f4f2f]">
+                          {formatPrice(itemTotal)}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="my-5 border-t border-[#e7dcc3]" />

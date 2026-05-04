@@ -1,22 +1,40 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Star, X } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 import { products } from "../data/products";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
+const API_BASE_URL = (
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
+).replace(/\/$/, "");
+
 const LOGIN_DURATION = 5 * 60 * 1000;
 
 const getRegisteredUser = () => {
-  const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
+  try {
+    const savedUser = JSON.parse(localStorage.getItem("registeredUser"));
 
-  if (!savedUser) return null;
+    if (!savedUser) return null;
 
-  if (Date.now() > savedUser.expiryTime) {
+    if (Date.now() > savedUser.expiryTime) {
+      localStorage.removeItem("registeredUser");
+      return null;
+    }
+
+    return savedUser;
+  } catch {
     localStorage.removeItem("registeredUser");
     return null;
   }
-
-  return savedUser;
 };
 
 export default function ProductDetails() {
@@ -24,15 +42,62 @@ export default function ProductDetails() {
   const { id } = useParams();
 
   const stateProduct = location.state?.product;
-  const product =
-    stateProduct || products.find((item) => item.id === Number(id)) || products[0];
+
+  const [dbProduct, setDbProduct] = useState(stateProduct || null);
+  const [loading, setLoading] = useState(!stateProduct);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (stateProduct) return;
+
+      try {
+        setLoading(true);
+
+        const res = await fetch(`${API_BASE_URL}/api/products/${id}`);
+
+        if (!res.ok) {
+          throw new Error("Product not found");
+        }
+
+        const data = await res.json();
+
+        if (data.success && data.product) {
+          setDbProduct(data.product);
+        }
+      } catch (error) {
+        console.error("Fetch product error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, stateProduct]);
+
+  const fallbackProduct =
+    products.find((item) => String(item.id) === String(id)) || products[0];
+
+  const product = dbProduct || fallbackProduct;
+
+  const productId = product._id || product.id;
 
   const productImages = useMemo(() => {
-    if (product.images && product.images.length > 0) return product.images;
-    return [product.image];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images;
+    }
+
+    if (product.image) {
+      return [product.image];
+    }
+
+    return [];
   }, [product]);
 
-  const [selectedImage, setSelectedImage] = useState(productImages[0]);
+  const [selectedImage, setSelectedImage] = useState("");
+
+  useEffect(() => {
+    setSelectedImage(productImages[0] || "");
+  }, [productImages]);
 
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
@@ -47,11 +112,7 @@ export default function ProductDetails() {
     otp: "",
   });
 
-  React.useEffect(() => {
-    setSelectedImage(productImages[0]);
-  }, [productImages]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => {
       setUserData(getRegisteredUser());
     }, 1000);
@@ -64,16 +125,23 @@ export default function ProductDetails() {
     setUserData(null);
   };
 
+  const getStoredProduct = () => ({
+    ...product,
+    id: productId,
+    _id: product._id || productId,
+    quantity: product.quantity || 1,
+  });
+
   const addProductToWishlist = () => {
     const existingWishlist =
       JSON.parse(localStorage.getItem("wishlistItems")) || [];
 
     const alreadyExists = existingWishlist.some(
-      (item) => item.id === product.id
+      (item) => String(item._id || item.id) === String(productId)
     );
 
     if (!alreadyExists) {
-      const updatedWishlist = [...existingWishlist, product];
+      const updatedWishlist = [...existingWishlist, getStoredProduct()];
       localStorage.setItem("wishlistItems", JSON.stringify(updatedWishlist));
       window.dispatchEvent(new Event("wishlistUpdated"));
       alert("Product added to wishlist");
@@ -85,10 +153,12 @@ export default function ProductDetails() {
   const addProductToCart = () => {
     const existingCart = JSON.parse(localStorage.getItem("cartItems")) || [];
 
-    const alreadyExists = existingCart.some((item) => item.id === product.id);
+    const alreadyExists = existingCart.some(
+      (item) => String(item._id || item.id) === String(productId)
+    );
 
     if (!alreadyExists) {
-      const updatedCart = [...existingCart, product];
+      const updatedCart = [...existingCart, getStoredProduct()];
       localStorage.setItem("cartItems", JSON.stringify(updatedCart));
       window.dispatchEvent(new Event("cartUpdated"));
       alert("Product added to cart");
@@ -105,6 +175,7 @@ export default function ProductDetails() {
 
       if (action === "cart") addProductToCart();
       if (action === "wishlist") addProductToWishlist();
+
       return;
     }
 
@@ -215,13 +286,13 @@ export default function ProductDetails() {
     });
   };
 
-  const handleAddToWishlist = () => {
-    openLoginForm("wishlist");
-  };
-
-  const handleAddToCart = () => {
-    openLoginForm("cart");
-  };
+  if (loading) {
+    return (
+      <section className="bg-[#f8f4ea] min-h-screen py-8 flex items-center justify-center">
+        <p className="text-[#2f4f2f]">Loading product...</p>
+      </section>
+    );
+  }
 
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-8">
@@ -246,11 +317,13 @@ export default function ProductDetails() {
                 -24%
               </span>
 
-              <img
-                src={selectedImage}
-                alt={product.name}
-                className="w-full h-[400px] sm:h-[520px] lg:h-[620px] object-contain"
-              />
+              {selectedImage && (
+                <img
+                  src={selectedImage}
+                  alt={product.name}
+                  className="w-full h-[400px] sm:h-[520px] lg:h-[620px] object-contain"
+                />
+              )}
             </div>
 
             <div className="mt-4 flex gap-3 overflow-x-auto">
@@ -292,7 +365,7 @@ export default function ProductDetails() {
             </div>
 
             <p className="mt-6 text-[22px] sm:text-[28px] text-[#2f4f2f] font-medium">
-              {product.price}
+              ₹{Number(product.price || 0).toFixed(2)}
             </p>
 
             {Array.isArray(product.description) ? (
@@ -364,14 +437,14 @@ export default function ProductDetails() {
 
             <div className="mt-4 flex gap-4 flex-wrap">
               <button
-                onClick={handleAddToCart}
+                onClick={() => openLoginForm("cart")}
                 className="bg-[#2f4f2f] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4 rounded-full"
               >
                 Add to Cart
               </button>
 
               <button
-                onClick={handleAddToWishlist}
+                onClick={() => openLoginForm("wishlist")}
                 className="bg-[#b48a2c] hover:opacity-90 transition text-white text-[13px] uppercase px-10 py-4 rounded-full"
               >
                 Add to Wishlist

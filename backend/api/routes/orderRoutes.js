@@ -2,11 +2,30 @@ const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
 
+const parsePrice = (value) => {
+  if (typeof value === "number") return value;
+  if (!value) return 0;
+
+  const match = String(value)
+    .replace(/,/g, "")
+    .match(/\d+(\.\d+)?/);
+
+  return match ? Number(match[0]) : 0;
+};
+
+const cleanOrderStatus = (status) => {
+  const allowed = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+  return allowed.includes(status) ? status : "Pending";
+};
+
+const cleanPaymentStatus = (status) => {
+  const allowed = ["Pending", "Paid", "Failed", "Refunded"];
+  return allowed.includes(status) ? status : "Pending";
+};
+
 // SAVE COD / RAZORPAY ORDER
 router.post("/payment-success", async (req, res) => {
   try {
-    console.log("ORDER BODY:", req.body);
-
     const {
       customer = {},
       items = [],
@@ -26,13 +45,24 @@ router.post("/payment-success", async (req, res) => {
       });
     }
 
-    const cleanedItems = items.map((item) => ({
-      productId: String(item.productId || item._id || item.id || ""),
-      name: String(item.name || "Product"),
-      image: String(item.image || ""),
-      price: Number(item.price || 0),
-      quantity: Number(item.quantity || 1),
-    }));
+    const cleanedItems = items.map((item) => {
+      const price = parsePrice(item.price);
+      const quantity = Number(item.quantity || 1);
+
+      return {
+        productId: String(item.productId || item._id || item.id || ""),
+        name: String(item.name || "Product"),
+        image: String(item.image || item.images?.[0] || ""),
+        price,
+        quantity: quantity > 0 ? quantity : 1,
+      };
+    });
+
+    const calculatedTotal = cleanedItems.reduce((sum, item) => {
+      return sum + item.price * item.quantity;
+    }, 0);
+
+    const finalTotal = parsePrice(totalAmount) || calculatedTotal;
 
     const order = await Order.create({
       customer: {
@@ -46,21 +76,11 @@ router.post("/payment-success", async (req, res) => {
       },
 
       items: cleanedItems,
+      totalAmount: finalTotal,
 
-      totalAmount: Number(totalAmount || 0),
-
-      paymentMethod:
-        paymentMethod === "Razorpay" ? "Razorpay" : "COD",
-
-      paymentStatus:
-        paymentStatus === "Paid" ? "Paid" : "Pending",
-
-      orderStatus:
-        ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"].includes(
-          orderStatus
-        )
-          ? orderStatus
-          : "Pending",
+      paymentMethod: paymentMethod === "Razorpay" ? "Razorpay" : "COD",
+      paymentStatus: cleanPaymentStatus(paymentStatus),
+      orderStatus: cleanOrderStatus(orderStatus),
 
       razorpayOrderId,
       razorpayPaymentId,
@@ -77,8 +97,7 @@ router.post("/payment-success", async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
-      error,
+      message: error.message || "Order save failed",
     });
   }
 });
@@ -98,6 +117,103 @@ router.get("/", async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "Failed to fetch orders",
+    });
+  }
+});
+
+// GET SINGLE ORDER
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.error("FETCH ORDER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch order",
+    });
+  }
+});
+
+// UPDATE ORDER STATUS
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { orderStatus } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { orderStatus: cleanOrderStatus(orderStatus) },
+      { new: true, runValidators: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Order status updated",
+      order,
+    });
+  } catch (error) {
+    console.error("UPDATE ORDER STATUS ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update order status",
+    });
+  }
+});
+
+// UPDATE ORDER STATUS FALLBACK
+router.put("/:id", async (req, res) => {
+  try {
+    const { orderStatus, paymentStatus } = req.body;
+
+    const updateData = {};
+
+    if (orderStatus) updateData.orderStatus = cleanOrderStatus(orderStatus);
+    if (paymentStatus) updateData.paymentStatus = cleanPaymentStatus(paymentStatus);
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Order updated",
+      order,
+    });
+  } catch (error) {
+    console.error("UPDATE ORDER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update order",
     });
   }
 });

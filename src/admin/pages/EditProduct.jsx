@@ -2,8 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ImagePlus, UploadCloud } from "lucide-react";
 
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
 ).replace(/\/$/, "");
 
 export default function EditProduct() {
@@ -31,8 +41,19 @@ export default function EditProduct() {
     if (!image) return "";
     if (image.startsWith("blob:")) return image;
     if (image.startsWith("http")) return image;
-    return `${API_BASE_URL}${image}`;
+    if (image.startsWith("/")) return `${API_BASE_URL}${image}`;
+    return `${API_BASE_URL}/uploads/products/${image}`;
   };
+
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((url) => {
+        if (url && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [previewImages]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -40,37 +61,42 @@ export default function EditProduct() {
         const res = await fetch(`${API_BASE_URL}/api/products/${id}`);
         const data = await res.json();
 
-        if (data.success && data.product) {
-          const product = data.product;
-          const desc = product.description || {};
-          const imgs = product.images?.length ? product.images : [product.image];
-
-          setForm({
-            name: product.name || "",
-            category: product.category || "",
-            price: product.price || "",
-            intro: desc.intro || "",
-            ingredients: Array.isArray(desc.ingredients)
-              ? desc.ingredients.join("\n")
-              : "",
-            process: desc.process || "",
-            benefits: Array.isArray(desc.benefits)
-              ? desc.benefits.join("\n")
-              : "",
-            note: desc.note || "",
-            suitable: desc.suitable || "",
-          });
-
-          setOldImages([imgs[0] || "", imgs[1] || "", imgs[2] || ""]);
-          setPreviewImages([
-            getImageUrl(imgs[0] || ""),
-            getImageUrl(imgs[1] || ""),
-            getImageUrl(imgs[2] || ""),
-          ]);
+        if (!res.ok || !data.success || !data.product) {
+          throw new Error(data.message || "Failed to fetch product");
         }
+
+        const product = data.product;
+        const desc = product.description || {};
+        const imgs =
+          Array.isArray(product.images) && product.images.length > 0
+            ? product.images
+            : product.image
+            ? [product.image]
+            : [];
+
+        setForm({
+          name: product.name || "",
+          category: product.category || "",
+          price: product.price || "",
+          intro: desc.intro || "",
+          ingredients: Array.isArray(desc.ingredients)
+            ? desc.ingredients.join("\n")
+            : "",
+          process: desc.process || "",
+          benefits: Array.isArray(desc.benefits)
+            ? desc.benefits.join("\n")
+            : "",
+          note: desc.note || "",
+          suitable: desc.suitable || "",
+        });
+
+        const fixedImages = [imgs[0] || "", imgs[1] || "", imgs[2] || ""];
+
+        setOldImages(fixedImages);
+        setPreviewImages(fixedImages.map((img) => getImageUrl(img)));
       } catch (error) {
         console.error("Fetch product error:", error);
-        alert("Failed to fetch product");
+        alert(error.message || "Failed to fetch product");
       }
     };
 
@@ -78,28 +104,46 @@ export default function EditProduct() {
   }, [id]);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
     setForm((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: name === "price" ? value.replace(/[^\d.]/g, "") : value,
     }));
   };
 
   const handleImageChange = (index, file) => {
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Please select only image file");
+      return;
+    }
+
     const updatedFiles = [...newImages];
     updatedFiles[index] = file;
     setNewImages(updatedFiles);
+
+    if (previewImages[index]?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewImages[index]);
+    }
 
     const updatedPreviews = [...previewImages];
     updatedPreviews[index] = URL.createObjectURL(file);
     setPreviewImages(updatedPreviews);
   };
 
+  const cleanLines = (value) => {
+    return value
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.category || !form.price) {
+    if (!form.name.trim() || !form.category.trim() || !form.price) {
       alert("Please fill product name, category and price");
       return;
     }
@@ -108,22 +152,18 @@ export default function EditProduct() {
       setLoading(true);
 
       const description = {
-        intro: form.intro,
-        ingredients: form.ingredients
-          ? form.ingredients.split("\n").filter(Boolean)
-          : [],
-        process: form.process,
-        benefits: form.benefits
-          ? form.benefits.split("\n").filter(Boolean)
-          : [],
-        note: form.note,
-        suitable: form.suitable,
+        intro: form.intro.trim(),
+        ingredients: form.ingredients ? cleanLines(form.ingredients) : [],
+        process: form.process.trim(),
+        benefits: form.benefits ? cleanLines(form.benefits) : [],
+        note: form.note.trim(),
+        suitable: form.suitable.trim(),
       };
 
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("category", form.category);
-      formData.append("price", form.price);
+      formData.append("name", form.name.trim());
+      formData.append("category", form.category.trim());
+      formData.append("price", Number(form.price));
       formData.append("description", JSON.stringify(description));
       formData.append("oldImages", JSON.stringify(oldImages));
 
@@ -145,6 +185,7 @@ export default function EditProduct() {
       alert("Product updated successfully");
       navigate("/admin/products");
     } catch (error) {
+      console.error("Update product error:", error);
       alert(error.message || "Failed to update product");
     } finally {
       setLoading(false);
@@ -182,7 +223,8 @@ export default function EditProduct() {
           value={form.price}
           onChange={handleChange}
           placeholder="Price"
-          type="number"
+          type="text"
+          inputMode="decimal"
           className="input"
         />
 

@@ -3,23 +3,39 @@ const Razorpay = require("razorpay");
 
 const router = express.Router();
 
-// LAZY INIT (SAFE)
+let razorpayInstance = null;
+
 const getRazorpayInstance = () => {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error("Razorpay keys not configured");
+    throw new Error("Razorpay keys not configured in backend .env");
   }
 
-  return new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-  });
+  if (!razorpayInstance) {
+    razorpayInstance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+
+  return razorpayInstance;
 };
 
+const parseAmount = (amount) => {
+  if (typeof amount === "number") return amount;
+
+  const match = String(amount || "")
+    .replace(/,/g, "")
+    .match(/\d+(\.\d+)?/);
+
+  return match ? Number(match[0]) : 0;
+};
+
+// CREATE RAZORPAY ORDER
 router.post("/create-order", async (req, res) => {
   try {
-    const { amount } = req.body;
+    const amount = parseAmount(req.body.amount);
 
-    if (!amount || Number(amount) <= 0) {
+    if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid amount",
@@ -29,24 +45,25 @@ router.post("/create-order", async (req, res) => {
     const razorpay = getRazorpayInstance();
 
     const options = {
-      amount: Math.round(Number(amount) * 100),
+      amount: Math.round(amount * 100),
       currency: "INR",
       receipt: `MHC_${Date.now()}`,
+      payment_capture: 1,
     };
 
     const order = await razorpay.orders.create(options);
 
-    res.json({
+    return res.status(201).json({
       success: true,
       order,
       key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (error) {
-    console.error("Create order error:", error.message);
+    console.error("Create Razorpay order error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to create Razorpay order",
     });
   }
 });

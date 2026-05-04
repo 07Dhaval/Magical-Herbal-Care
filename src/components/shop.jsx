@@ -1,10 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").replace(
-  /\/$/,
-  ""
-);
+const getApiBaseUrl = () => {
+  const localApi =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+  const liveApi =
+    import.meta.env.VITE_RENDER_API_BASE_URL ||
+    "https://magical-herbal-care.onrender.com";
+
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  return (isLocalhost ? localApi : liveApi).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 function ShopCard({ item }) {
   const productId = item._id || item.id;
@@ -49,10 +61,15 @@ export default function Shop() {
         setLoading(true);
 
         const res = await fetch(`${API_BASE_URL}/api/products`);
+
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
+
         const data = await res.json();
 
-        if (res.ok && data.success) {
-          setProducts(data.products || []);
+        if (data.success && Array.isArray(data.products)) {
+          setProducts(data.products);
         } else {
           setProducts([]);
         }
@@ -92,8 +109,9 @@ export default function Shop() {
           </h1>
 
           <p className="mt-4 text-[10px] sm:text-[11px] md:text-[12px] text-[#2f4f2f]">
-            Explore our premium Magical Herbal Care by Swati Tiwari collection across home care, hair care,
-            skin care, personal care, and wellness products.
+            Explore our premium Magical Herbal Care by Swati Tiwari collection
+            across home care, hair care, skin care, personal care, and wellness
+            products.
           </p>
         </div>
 
@@ -126,7 +144,9 @@ export default function Shop() {
         )}
 
         {loading ? (
-          <p className="mt-10 text-center text-[#2f4f2f]">Loading products...</p>
+          <p className="mt-10 text-center text-[#2f4f2f]">
+            Loading products...
+          </p>
         ) : filteredProducts.length === 0 ? (
           <p className="mt-10 text-center text-[#2f4f2f]">
             No products available.

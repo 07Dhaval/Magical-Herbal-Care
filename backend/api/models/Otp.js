@@ -4,22 +4,44 @@ const otpSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       lowercase: true,
       trim: true,
     },
+
     otp: {
       type: String,
-      required: true,
+      required: [true, "OTP is required"],
+      trim: true,
+      minlength: 4,
+      maxlength: 6,
     },
+
     expiresAt: {
       type: Date,
       required: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Auto delete expired OTP
+otpSchema.index(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0 }
+);
 
-module.exports = mongoose.model("Otp", otpSchema);
+// Clean email before save
+otpSchema.pre("save", function (next) {
+  if (this.email) {
+    this.email = this.email.toLowerCase().trim();
+  }
+
+  next();
+});
+
+module.exports =
+  mongoose.models.Otp ||
+  mongoose.model("Otp", otpSchema);

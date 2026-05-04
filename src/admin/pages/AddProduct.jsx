@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ImagePlus, UploadCloud } from "lucide-react";
 
+const LOCAL_API =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const RENDER_API =
+  import.meta.env.VITE_RENDER_API_BASE_URL ||
+  "https://magical-herbal-care.onrender.com";
+
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? LOCAL_API
+    : RENDER_API
 ).replace(/\/$/, "");
 
 export default function AddProduct() {
@@ -25,29 +35,55 @@ export default function AddProduct() {
   const [previewImages, setPreviewImages] = useState(["", "", ""]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, [previewImages]);
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
     setForm((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: name === "price" ? value.replace(/[^\d.]/g, "") : value,
     }));
   };
 
   const handleImageChange = (index, file) => {
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      alert("Please select only image file");
+      return;
+    }
+
     const updatedImages = [...images];
     updatedImages[index] = file;
     setImages(updatedImages);
+
+    if (previewImages[index]) {
+      URL.revokeObjectURL(previewImages[index]);
+    }
 
     const updatedPreviews = [...previewImages];
     updatedPreviews[index] = URL.createObjectURL(file);
     setPreviewImages(updatedPreviews);
   };
 
+  const cleanLines = (value) => {
+    return value
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.category || !form.price) {
+    if (!form.name.trim() || !form.category.trim() || !form.price) {
       alert("Please fill product name, category and price");
       return;
     }
@@ -63,26 +99,22 @@ export default function AddProduct() {
       setLoading(true);
 
       const description = {
-        intro: form.intro,
-        ingredients: form.ingredients
-          ? form.ingredients.split("\n").filter(Boolean)
-          : [],
-        process: form.process,
-        benefits: form.benefits
-          ? form.benefits.split("\n").filter(Boolean)
-          : [],
-        note: form.note,
-        suitable: form.suitable,
+        intro: form.intro.trim(),
+        ingredients: form.ingredients ? cleanLines(form.ingredients) : [],
+        process: form.process.trim(),
+        benefits: form.benefits ? cleanLines(form.benefits) : [],
+        note: form.note.trim(),
+        suitable: form.suitable.trim(),
       };
 
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("category", form.category);
-      formData.append("price", form.price);
+      formData.append("name", form.name.trim());
+      formData.append("category", form.category.trim());
+      formData.append("price", Number(form.price));
       formData.append("description", JSON.stringify(description));
 
-      images.forEach((image) => {
-        if (image) formData.append("images", image);
+      selectedImages.forEach((image) => {
+        formData.append("images", image);
       });
 
       const res = await fetch(`${API_BASE_URL}/api/products`, {
@@ -99,6 +131,7 @@ export default function AddProduct() {
       alert("Product added successfully");
       navigate("/admin/products");
     } catch (error) {
+      console.error("Add product error:", error);
       alert(error.message || "Failed to add product");
     } finally {
       setLoading(false);
@@ -136,7 +169,8 @@ export default function AddProduct() {
           value={form.price}
           onChange={handleChange}
           placeholder="Price"
-          type="number"
+          type="text"
+          inputMode="decimal"
           className="input"
         />
 

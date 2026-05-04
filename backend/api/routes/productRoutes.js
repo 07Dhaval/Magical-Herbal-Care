@@ -18,20 +18,46 @@ const storage = multer.diskStorage({
   },
 
   filename(req, file, cb) {
-    const uniqueName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     cb(null, uniqueName);
   },
 });
 
-const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only JPG, PNG and WEBP images are allowed"), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
 const getImageUrl = (req, filename) => {
   return `${req.protocol}://${req.get("host")}/uploads/products/${filename}`;
+};
+
+const safeJsonParse = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const cleanImages = (images) => {
+  if (!Array.isArray(images)) return [];
+
+  return images.filter(Boolean).slice(0, 5);
 };
 
 // GET ALL PRODUCTS
@@ -84,10 +110,19 @@ router.post("/", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description } = req.body;
 
-    if (!name || !category || !price) {
+    if (!name || !category || price === undefined || price === "") {
       return res.status(400).json({
         success: false,
         message: "Name, category and price are required",
+      });
+    }
+
+    const numericPrice = Number(price);
+
+    if (Number.isNaN(numericPrice)) {
+      return res.status(400).json({
+        success: false,
+        message: "Price must be a valid number",
       });
     }
 
@@ -99,14 +134,15 @@ router.post("/", upload.array("images", 5), async (req, res) => {
     }
 
     const imageUrls = req.files.map((file) => getImageUrl(req, file.filename));
+    const parsedDescription = safeJsonParse(description, {});
 
     const product = await Product.create({
-      name,
-      category,
-      price: Number(price),
+      name: name.trim(),
+      category: category.trim(),
+      price: numericPrice,
       image: imageUrls[0],
       images: imageUrls,
-      description: description ? JSON.parse(description) : {},
+      description: parsedDescription,
     });
 
     res.status(201).json({
@@ -128,29 +164,51 @@ router.put("/:id", upload.array("images", 5), async (req, res) => {
   try {
     const { name, category, price, description, oldImages } = req.body;
 
-    let imageUrls = [];
-
-    if (oldImages) {
-      try {
-        imageUrls = JSON.parse(oldImages);
-      } catch {
-        imageUrls = [];
-      }
+    if (!name || !category || price === undefined || price === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Name, category and price are required",
+      });
     }
+
+    const numericPrice = Number(price);
+
+    if (Number.isNaN(numericPrice)) {
+      return res.status(400).json({
+        success: false,
+        message: "Price must be a valid number",
+      });
+    }
+
+    let imageUrls = cleanImages(safeJsonParse(oldImages, []));
 
     if (req.files && req.files.length > 0) {
-      imageUrls = req.files.map((file) => getImageUrl(req, file.filename));
+      const newImageUrls = req.files.map((file) => getImageUrl(req, file.filename));
+
+      imageUrls = imageUrls.map((oldImage, index) => {
+        return newImageUrls[index] || oldImage;
+      });
+
+      newImageUrls.forEach((newImage) => {
+        if (!imageUrls.includes(newImage)) {
+          imageUrls.push(newImage);
+        }
+      });
+
+      imageUrls = cleanImages(imageUrls);
     }
+
+    const parsedDescription = safeJsonParse(description, {});
 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       {
-        name,
-        category,
-        price: Number(price),
+        name: name.trim(),
+        category: category.trim(),
+        price: numericPrice,
         image: imageUrls[0] || "",
         images: imageUrls,
-        description: description ? JSON.parse(description) : {},
+        description: parsedDescription,
       },
       { new: true, runValidators: true }
     );
@@ -190,7 +248,7 @@ router.delete("/:id", async (req, res) => {
 
     res.json({
       success: true,
-      message: "Product deleted",
+      message: "Product deleted successfully",
     });
   } catch (error) {
     console.error("Delete product error:", error);

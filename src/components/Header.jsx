@@ -4,6 +4,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaWhatsapp } from "react-icons/fa";
 import { products } from "../data/products";
 
+const safeJsonParse = (key, fallback) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
+
+const getProductId = (item) => item?._id || item?.id || item?.productId;
+
 export default function Header() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -14,49 +25,65 @@ export default function Header() {
 
   const navigate = useNavigate();
 
+  const updateCounts = () => {
+    const wishlistItems = safeJsonParse("wishlistItems", []);
+    const cartItems = safeJsonParse("cartItems", []);
+
+    setWishlistCount(wishlistItems.length);
+
+    const totalCartCount = cartItems.reduce(
+      (sum, item) => sum + Number(item.quantity || 1),
+      0
+    );
+
+    setCartCount(totalCartCount);
+  };
+
   useEffect(() => {
-    const updateWishlistCount = () => {
-      const wishlistItems =
-        JSON.parse(localStorage.getItem("wishlistItems")) || [];
-      setWishlistCount(wishlistItems.length);
-    };
+    updateCounts();
 
-    const updateCartCount = () => {
-      const cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
-      setCartCount(cartItems.length);
-    };
-
-    updateWishlistCount();
-    updateCartCount();
-
-    window.addEventListener("wishlistUpdated", updateWishlistCount);
-    window.addEventListener("cartUpdated", updateCartCount);
+    window.addEventListener("wishlistUpdated", updateCounts);
+    window.addEventListener("cartUpdated", updateCounts);
+    window.addEventListener("storage", updateCounts);
 
     return () => {
-      window.removeEventListener("wishlistUpdated", updateWishlistCount);
-      window.removeEventListener("cartUpdated", updateCartCount);
+      window.removeEventListener("wishlistUpdated", updateCounts);
+      window.removeEventListener("cartUpdated", updateCounts);
+      window.removeEventListener("storage", updateCounts);
     };
   }, []);
 
   const filteredSuggestions = useMemo(() => {
-    if (!searchText.trim()) return [];
+    const value = searchText.trim().toLowerCase();
+
+    if (!value) return [];
+
     return products.filter((item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase()),
+      item.name?.toLowerCase().includes(value)
     );
   }, [searchText]);
 
+  const closeSearch = () => {
+    setShowSearch(false);
+    setSearchText("");
+  };
+
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter" && searchText.trim() !== "") {
-      navigate(`/shop?search=${encodeURIComponent(searchText)}`);
-      setShowSearch(false);
-      setSearchText("");
+      navigate(`/shop?search=${encodeURIComponent(searchText.trim())}`);
+      closeSearch();
+      setMobileMenu(false);
     }
   };
 
   const handleSuggestionClick = (item) => {
-    navigate(`/product/${item.id}`, { state: { product: item } });
-    setShowSearch(false);
-    setSearchText("");
+    const productId = getProductId(item);
+
+    if (!productId) return;
+
+    navigate(`/product/${productId}`, { state: { product: item } });
+    closeSearch();
+    setMobileMenu(false);
   };
 
   return (
@@ -91,10 +118,11 @@ export default function Header() {
           <h1 className="text-[10px] sm:text-[20px] font-serif tracking-wider text-[#2f4f2f]">
             ~ Swati Tiwari ~
           </h1>
+
           <div className="relative hidden md:block">
             <button
               type="button"
-              onClick={() => setShowSearch(!showSearch)}
+              onClick={() => setShowSearch((prev) => !prev)}
               className="flex items-center justify-center"
             >
               <Search
@@ -120,7 +148,7 @@ export default function Header() {
                     {filteredSuggestions.length > 0 ? (
                       filteredSuggestions.map((item) => (
                         <button
-                          key={item.id}
+                          key={getProductId(item)}
                           onClick={() => handleSuggestionClick(item)}
                           className="w-full text-left px-4 py-3 text-sm text-[#2f4f2f] hover:bg-[#f6f6f3] transition border-b border-[#f7f3ea] last:border-b-0"
                         >
@@ -172,7 +200,7 @@ export default function Header() {
           <Menu
             className="md:hidden cursor-pointer text-[#2f4f2f]"
             size={22}
-            onClick={() => setMobileMenu(!mobileMenu)}
+            onClick={() => setMobileMenu((prev) => !prev)}
           />
         </div>
       </div>
@@ -195,11 +223,8 @@ export default function Header() {
                   {filteredSuggestions.length > 0 ? (
                     filteredSuggestions.map((item) => (
                       <button
-                        key={item.id}
-                        onClick={() => {
-                          handleSuggestionClick(item);
-                          setMobileMenu(false);
-                        }}
+                        key={getProductId(item)}
+                        onClick={() => handleSuggestionClick(item)}
                         className="w-full text-left px-4 py-3 text-sm text-[#2f4f2f] hover:bg-[#f6f6f3] transition border-b border-[#f7f3ea] last:border-b-0"
                       >
                         {item.name}
