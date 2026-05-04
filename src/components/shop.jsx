@@ -1,22 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-const getApiBaseUrl = () => {
-  const localApi =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
-  const liveApi =
-    import.meta.env.VITE_RENDER_API_BASE_URL ||
-    "https://magical-herbal-care.onrender.com";
-
-  const isLocalhost =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-
-  return (isLocalhost ? localApi : liveApi).replace(/\/$/, "");
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+).replace(/\/$/, "");
 
 const getProductImage = (item) => {
   const image = item?.image || item?.images?.[0] || "";
@@ -35,7 +22,7 @@ const getProductImage = (item) => {
 };
 
 function ShopCard({ item }) {
-  const productId = item._id || item.id;
+  const productId = item._id;
 
   return (
     <Link
@@ -61,6 +48,10 @@ function ShopCard({ item }) {
       <p className="mt-2 text-[12px] text-[#2f4f2f] leading-none">
         {item.category}
       </p>
+
+      <p className="mt-2 text-[14px] text-[#2f4f2f] font-medium leading-none">
+        ₹{Number(item.price || 0).toFixed(2)}
+      </p>
     </Link>
   );
 }
@@ -80,18 +71,13 @@ export default function Shop() {
         setLoading(true);
 
         const res = await fetch(`${API_BASE_URL}/api/products`);
-
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
-        }
-
         const data = await res.json();
 
-        if (data.success && Array.isArray(data.products)) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
+        if (!res.ok || !data.success || !Array.isArray(data.products)) {
+          throw new Error(data.message || "Failed to fetch products");
         }
+
+        setProducts(data.products);
       } catch (error) {
         console.error("Product fetch error:", error);
         setProducts([]);
@@ -116,11 +102,13 @@ export default function Shop() {
         selectedCategory === "All" || item.category === selectedCategory;
 
       const matchesSearch =
-        !searchTerm || item.name?.toLowerCase().includes(searchTerm);
+        !searchTerm ||
+        item.name?.toLowerCase().includes(searchTerm) ||
+        item.category?.toLowerCase().includes(searchTerm);
 
       return matchesCategory && matchesSearch;
     });
-  }, [products, searchTerm, selectedCategory]);
+  }, [products, selectedCategory, searchTerm]);
 
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-6 sm:py-8 md:py-10">
@@ -176,7 +164,7 @@ export default function Shop() {
         ) : (
           <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 sm:gap-x-5 md:gap-x-2 gap-y-8 sm:gap-y-10">
             {filteredProducts.map((item) => (
-              <ShopCard key={item._id || item.id} item={item} />
+              <ShopCard key={item._id} item={item} />
             ))}
           </div>
         )}

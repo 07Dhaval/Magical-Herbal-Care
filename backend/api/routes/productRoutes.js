@@ -16,7 +16,6 @@ const storage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, uploadDir);
   },
-
   filename(req, file, cb) {
     const ext = path.extname(file.originalname);
     const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
@@ -24,17 +23,12 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype && file.mimetype.startsWith("image/")) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only image files are allowed"), false);
-  }
-};
-
 const upload = multer({
   storage,
-  fileFilter,
+  fileFilter(req, file, cb) {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
 });
 
 const getImageUrl = (req, filename) => {
@@ -53,9 +47,7 @@ const parseDescription = (description) => {
     };
   }
 
-  if (typeof description === "object") {
-    return description;
-  }
+  if (typeof description === "object") return description;
 
   try {
     return JSON.parse(description);
@@ -71,7 +63,11 @@ const parseDescription = (description) => {
   }
 };
 
-// GET all products
+const isValidPrice = (price) => {
+  return price !== undefined && price !== "" && !Number.isNaN(Number(price));
+};
+
+// GET all products from database
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
@@ -85,12 +81,13 @@ router.get("/", async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch products",
+      message: "Failed to fetch products",
+      error: error.message,
     });
   }
 });
 
-// GET single product
+// GET single product from database
 router.get("/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -111,12 +108,13 @@ router.get("/:id", async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch product",
+      message: "Failed to fetch product",
+      error: error.message,
     });
   }
 });
 
-// ADD product
+// ADD product to database
 router.post(
   "/",
   upload.fields([
@@ -127,10 +125,10 @@ router.post(
     try {
       const { name, category, price } = req.body;
 
-      if (!name || !category || price === undefined || price === "") {
+      if (!name || !category || !isValidPrice(price)) {
         return res.status(400).json({
           success: false,
-          message: "Name, category and price are required",
+          message: "Name, category and valid price are required",
         });
       }
 
@@ -166,13 +164,14 @@ router.post(
 
       res.status(500).json({
         success: false,
-        message: error.message || "Failed to add product",
+        message: "Failed to add product",
+        error: error.message,
       });
     }
   }
 );
 
-// UPDATE product
+// UPDATE product in database
 router.put(
   "/:id",
   upload.fields([
@@ -194,7 +193,9 @@ router.put(
       const multiImages = req.files?.images || [];
 
       let image = oldProduct.image || "";
-      let images = Array.isArray(oldProduct.images) ? [...oldProduct.images] : [];
+      let images = Array.isArray(oldProduct.images)
+        ? [...oldProduct.images]
+        : [];
 
       if (multiImages.length > 0) {
         images = multiImages.map((file) => getImageUrl(req, file.filename));
@@ -217,13 +218,28 @@ router.put(
         images,
       };
 
-      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
-      if (req.body.category !== undefined)
+      if (req.body.name !== undefined) {
+        updateData.name = req.body.name.trim();
+      }
+
+      if (req.body.category !== undefined) {
         updateData.category = req.body.category.trim();
-      if (req.body.price !== undefined && req.body.price !== "")
+      }
+
+      if (req.body.price !== undefined) {
+        if (!isValidPrice(req.body.price)) {
+          return res.status(400).json({
+            success: false,
+            message: "Valid price is required",
+          });
+        }
+
         updateData.price = Number(req.body.price);
-      if (req.body.description !== undefined)
+      }
+
+      if (req.body.description !== undefined) {
         updateData.description = parseDescription(req.body.description);
+      }
 
       const updatedProduct = await Product.findByIdAndUpdate(
         req.params.id,
@@ -244,13 +260,14 @@ router.put(
 
       res.status(500).json({
         success: false,
-        message: error.message || "Failed to update product",
+        message: "Failed to update product",
+        error: error.message,
       });
     }
   }
 );
 
-// DELETE product
+// DELETE product from database
 router.delete("/:id", async (req, res) => {
   try {
     const deletedProduct = await Product.findByIdAndDelete(req.params.id);
@@ -271,7 +288,8 @@ router.delete("/:id", async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.message || "Failed to delete product",
+      message: "Failed to delete product",
+      error: error.message,
     });
   }
 });

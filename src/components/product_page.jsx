@@ -1,20 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Star, X } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
-import { products } from "../data/products";
-
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
 
 const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
 ).replace(/\/$/, "");
 
 const LOGIN_DURATION = 5 * 60 * 1000;
@@ -55,10 +44,10 @@ export default function ProductDetails() {
   const location = useLocation();
   const { id } = useParams();
 
-  const stateProduct = location.state?.product;
+  const stateProduct = location.state?.product || null;
 
-  const [dbProduct, setDbProduct] = useState(stateProduct || null);
-  const [loading, setLoading] = useState(!stateProduct);
+  const [product, setProduct] = useState(stateProduct);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState("");
 
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -80,18 +69,21 @@ export default function ProductDetails() {
         setLoading(true);
 
         const res = await fetch(`${API_BASE_URL}/api/products/${id}`);
-
-        if (!res.ok) {
-          throw new Error("Product not found");
-        }
-
         const data = await res.json();
 
-        if (data.success && data.product) {
-          setDbProduct(data.product);
+        if (!res.ok || !data.success || !data.product) {
+          throw new Error(data.message || "Product not found");
         }
+
+        setProduct(data.product);
       } catch (error) {
         console.error("Fetch product error:", error);
+
+        if (stateProduct) {
+          setProduct(stateProduct);
+        } else {
+          setProduct(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -99,11 +91,6 @@ export default function ProductDetails() {
 
     fetchProduct();
   }, [id]);
-
-  const fallbackProduct =
-    products.find((item) => String(item.id) === String(id)) || null;
-
-  const product = dbProduct || fallbackProduct;
 
   const productId = product?._id || product?.id;
 
@@ -119,6 +106,7 @@ export default function ProductDetails() {
     if (Array.isArray(product.images)) {
       product.images.forEach((img) => {
         const finalImg = getImageUrl(img);
+
         if (finalImg && !images.includes(finalImg)) {
           images.push(finalImg);
         }
@@ -148,10 +136,10 @@ export default function ProductDetails() {
   const getStoredProduct = () => ({
     ...product,
     id: productId,
-    _id: product?._id || productId,
+    _id: productId,
     image: productImages[0],
     images: productImages,
-    quantity: product?.quantity || 1,
+    quantity: 1,
   });
 
   const addProductToWishlist = () => {
@@ -236,7 +224,7 @@ export default function ProductDetails() {
       }
 
       setOtpSent(true);
-      alert(`Your OTP is: ${data.otp}`);
+      alert("OTP sent successfully. Please check your email.");
     } catch (error) {
       alert(error.message || "OTP send failed");
     } finally {
@@ -408,6 +396,10 @@ export default function ProductDetails() {
                   <li key={index}>{point}</li>
                 ))}
               </ul>
+            ) : typeof product.description === "string" ? (
+              <p className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
+                {product.description}
+              </p>
             ) : (
               <div className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
                 {product.description?.intro && (
