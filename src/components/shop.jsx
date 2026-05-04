@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 const getApiBaseUrl = () => {
   const localApi =
-    import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
   const liveApi =
     import.meta.env.VITE_RENDER_API_BASE_URL ||
@@ -18,6 +18,22 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+const getProductImage = (item) => {
+  const image = item?.image || item?.images?.[0] || "";
+
+  if (!image) return "/placeholder-product.png";
+
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+
+  if (image.startsWith("/uploads")) {
+    return `${API_BASE_URL}${image}`;
+  }
+
+  return `${API_BASE_URL}/uploads/products/${image}`;
+};
+
 function ShopCard({ item }) {
   const productId = item._id || item.id;
 
@@ -29,8 +45,11 @@ function ShopCard({ item }) {
     >
       <div className="w-full max-w-[280px] h-[390px] mx-auto bg-white border border-[#e7dcc3] rounded-[20px] flex items-center justify-center overflow-hidden shadow-sm transition duration-300 group-hover:shadow-md">
         <img
-          src={item.image}
+          src={getProductImage(item)}
           alt={item.name}
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder-product.png";
+          }}
           className="w-full h-full object-contain transition duration-300 group-hover:scale-[1.03]"
         />
       </div>
@@ -85,7 +104,10 @@ export default function Shop() {
   }, []);
 
   const categories = useMemo(() => {
-    return ["All", ...new Set(products.map((item) => item.category).filter(Boolean))];
+    return [
+      "All",
+      ...new Set(products.map((item) => item.category).filter(Boolean)),
+    ];
   }, [products]);
 
   const filteredProducts = useMemo(() => {

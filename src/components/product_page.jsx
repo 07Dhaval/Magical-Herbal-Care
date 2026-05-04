@@ -4,7 +4,7 @@ import { useLocation, useParams } from "react-router-dom";
 import { products } from "../data/products";
 
 const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const RENDER_API =
   import.meta.env.VITE_RENDER_API_BASE_URL ||
@@ -18,6 +18,20 @@ const API_BASE_URL = (
 ).replace(/\/$/, "");
 
 const LOGIN_DURATION = 5 * 60 * 1000;
+
+const getImageUrl = (image) => {
+  if (!image) return "/placeholder-product.png";
+
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+
+  if (image.startsWith("/uploads")) {
+    return `${API_BASE_URL}${image}`;
+  }
+
+  return `${API_BASE_URL}/uploads/products/${image}`;
+};
 
 const getRegisteredUser = () => {
   try {
@@ -45,11 +59,23 @@ export default function ProductDetails() {
 
   const [dbProduct, setDbProduct] = useState(stateProduct || null);
   const [loading, setLoading] = useState(!stateProduct);
+  const [selectedImage, setSelectedImage] = useState("");
+
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [pendingAction, setPendingAction] = useState("");
+  const [userData, setUserData] = useState(getRegisteredUser());
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  const [loginData, setLoginData] = useState({
+    name: "",
+    email: "",
+    otp: "",
+  });
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (stateProduct) return;
-
       try {
         setLoading(true);
 
@@ -72,45 +98,39 @@ export default function ProductDetails() {
     };
 
     fetchProduct();
-  }, [id, stateProduct]);
+  }, [id]);
 
   const fallbackProduct =
-    products.find((item) => String(item.id) === String(id)) || products[0];
+    products.find((item) => String(item.id) === String(id)) || null;
 
   const product = dbProduct || fallbackProduct;
 
-  const productId = product._id || product.id;
+  const productId = product?._id || product?.id;
 
   const productImages = useMemo(() => {
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      return product.images;
-    }
+    if (!product) return [];
+
+    const images = [];
 
     if (product.image) {
-      return [product.image];
+      images.push(getImageUrl(product.image));
     }
 
-    return [];
+    if (Array.isArray(product.images)) {
+      product.images.forEach((img) => {
+        const finalImg = getImageUrl(img);
+        if (finalImg && !images.includes(finalImg)) {
+          images.push(finalImg);
+        }
+      });
+    }
+
+    return images.length > 0 ? images : ["/placeholder-product.png"];
   }, [product]);
 
-  const [selectedImage, setSelectedImage] = useState("");
-
   useEffect(() => {
-    setSelectedImage(productImages[0] || "");
+    setSelectedImage(productImages[0] || "/placeholder-product.png");
   }, [productImages]);
-
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [pendingAction, setPendingAction] = useState("");
-  const [userData, setUserData] = useState(getRegisteredUser());
-
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-
-  const [loginData, setLoginData] = useState({
-    name: "",
-    email: "",
-    otp: "",
-  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -128,8 +148,10 @@ export default function ProductDetails() {
   const getStoredProduct = () => ({
     ...product,
     id: productId,
-    _id: product._id || productId,
-    quantity: product.quantity || 1,
+    _id: product?._id || productId,
+    image: productImages[0],
+    images: productImages,
+    quantity: product?.quantity || 1,
   });
 
   const addProductToWishlist = () => {
@@ -294,6 +316,14 @@ export default function ProductDetails() {
     );
   }
 
+  if (!product) {
+    return (
+      <section className="bg-[#f8f4ea] min-h-screen py-8 flex items-center justify-center">
+        <p className="text-[#2f4f2f]">Product not found.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="bg-[#f8f4ea] min-h-screen py-8">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
@@ -317,19 +347,20 @@ export default function ProductDetails() {
                 -24%
               </span>
 
-              {selectedImage && (
-                <img
-                  src={selectedImage}
-                  alt={product.name}
-                  className="w-full h-[400px] sm:h-[520px] lg:h-[620px] object-contain"
-                />
-              )}
+              <img
+                src={selectedImage || "/placeholder-product.png"}
+                alt={product.name}
+                onError={(e) => {
+                  e.currentTarget.src = "/placeholder-product.png";
+                }}
+                className="w-full h-[400px] sm:h-[520px] lg:h-[620px] object-contain"
+              />
             </div>
 
             <div className="mt-4 flex gap-3 overflow-x-auto">
               {productImages.map((img, index) => (
                 <button
-                  key={index}
+                  key={`${img}-${index}`}
                   type="button"
                   onClick={() => setSelectedImage(img)}
                   className={`min-w-[110px] sm:min-w-[130px] h-[100px] sm:h-[120px] border bg-white flex items-center justify-center overflow-hidden rounded-[12px] transition ${
@@ -341,6 +372,9 @@ export default function ProductDetails() {
                   <img
                     src={img}
                     alt={`${product.name} ${index + 1}`}
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-product.png";
+                    }}
                     className="w-full h-full object-contain"
                   />
                 </button>
@@ -380,18 +414,19 @@ export default function ProductDetails() {
                   <p className="mb-4">{product.description.intro}</p>
                 )}
 
-                {product.description?.ingredients && (
-                  <div className="mb-5">
-                    <h3 className="text-[#b48a2c] font-semibold mb-2">
-                      Key Ingredients
-                    </h3>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {product.description.ingredients.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {Array.isArray(product.description?.ingredients) &&
+                  product.description.ingredients.length > 0 && (
+                    <div className="mb-5">
+                      <h3 className="text-[#b48a2c] font-semibold mb-2">
+                        Key Ingredients
+                      </h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {product.description.ingredients.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                 {product.description?.process && (
                   <div className="mb-5">
@@ -402,18 +437,19 @@ export default function ProductDetails() {
                   </div>
                 )}
 
-                {product.description?.benefits && (
-                  <div className="mb-5">
-                    <h3 className="text-[#b48a2c] font-semibold mb-2">
-                      Benefits
-                    </h3>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {product.description.benefits.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {Array.isArray(product.description?.benefits) &&
+                  product.description.benefits.length > 0 && (
+                    <div className="mb-5">
+                      <h3 className="text-[#b48a2c] font-semibold mb-2">
+                        Benefits
+                      </h3>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {product.description.benefits.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                 {product.description?.note && (
                   <p className="mt-4 font-medium text-[#2f4f2f]">

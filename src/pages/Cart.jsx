@@ -287,7 +287,7 @@ export default function Cart() {
                     >
                       <div className="bg-white h-[240px] flex items-center justify-center p-4">
                         <img
-                          src={item.image}
+                          src={item.image || item.images?.[0]}
                           alt={item.name}
                           className="w-full h-full object-contain"
                         />

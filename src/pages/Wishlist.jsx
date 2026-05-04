@@ -318,7 +318,7 @@ export default function Wishlist() {
                   >
                     <div className="w-full h-[250px] bg-white flex items-center justify-center overflow-hidden">
                       <img
-                        src={item.image}
+                        src={item.image || item.images?.[0]}
                         alt={item.name}
                         className="w-full h-full object-contain p-3"
                       />
