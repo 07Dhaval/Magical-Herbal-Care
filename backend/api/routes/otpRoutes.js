@@ -8,30 +8,11 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    family: 4, // Render IPv6 issue fix
-    requireTLS: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: true,
-    },
-  });
-};
-
-// SEND OTP
 router.post("/send", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const { email } = req.body;
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return res.status(400).json({
         success: false,
         message: "Please enter a valid email address",
@@ -41,7 +22,7 @@ router.post("/send", async (req, res) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         success: false,
-        message: "Email credentials missing in Render environment",
+        message: "Email credentials missing in .env file",
       });
     }
 
@@ -55,7 +36,13 @@ router.post("/send", async (req, res) => {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    const transporter = createTransporter();
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
     await transporter.verify();
 
@@ -64,13 +51,12 @@ router.post("/send", async (req, res) => {
       to: email,
       subject: "Your OTP Verification Code",
       html: `
-        <div style="font-family: Arial, sans-serif; padding:20px; background:#fffdf7;">
+        <div style="font-family: Arial, sans-serif; padding: 20px; background:#fffdf7;">
           <div style="max-width:500px; margin:auto; border:1px solid #e7dcc3; border-radius:12px; padding:24px;">
-            <h2 style="color:#2f4f2f; margin-bottom:10px;">Magical Herbal Care</h2>
-            <p style="color:#456b3d; font-size:16px;">Your OTP verification code is:</p>
+            <h2 style="color:#2f4f2f; margin:0 0 12px;">Magical Herbal Care</h2>
+            <p style="color:#456b3d;">Your OTP verification code is:</p>
             <h1 style="color:#b48a2c; letter-spacing:4px; font-size:34px;">${otp}</h1>
             <p style="color:#456b3d;">This OTP is valid for 5 minutes.</p>
-            <p style="color:#777; font-size:13px;">Please do not share this OTP with anyone.</p>
           </div>
         </div>
       `,
@@ -78,23 +64,22 @@ router.post("/send", async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "OTP sent successfully",
+      message: "OTP sent to email successfully",
     });
   } catch (error) {
-    console.error("Send Email OTP Error:", error);
+    console.error("Send Email OTP Error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to send OTP",
+      message: "Failed to send email OTP",
+      error: error.message,
     });
   }
 });
 
-// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const otp = String(req.body.otp || "").trim();
+    const { email, otp } = req.body;
 
     if (!email || !otp) {
       return res.status(400).json({
@@ -105,7 +90,7 @@ router.post("/verify", async (req, res) => {
 
     const otpRecord = await Otp.findOne({
       email,
-      otp,
+      otp: otp.toString(),
       expiresAt: { $gt: new Date() },
     });
 
@@ -120,14 +105,15 @@ router.post("/verify", async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "OTP verified successfully",
+      message: "Email verified successfully",
     });
   } catch (error) {
-    console.error("Verify OTP Error:", error);
+    console.error("Verify Email OTP Error:", error.message);
 
     return res.status(500).json({
       success: false,
-      message: error.message || "OTP verification failed",
+      message: "OTP verification failed",
+      error: error.message,
     });
   }
 });
