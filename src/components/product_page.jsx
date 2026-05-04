@@ -236,7 +236,7 @@ export default function ProductDetails() {
       }
 
       setOtpSent(true);
-      alert("OTP sent successfully");
+      alert(`Your OTP is: ${data.otp}`);
     } catch (error) {
       alert(error.message || "OTP send failed");
     } finally {

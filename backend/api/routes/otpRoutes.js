@@ -10,19 +10,20 @@ const generateOtp = () => {
 
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp.hostinger.com",
-    port: 465,
+    host: process.env.SMTP_HOST || "smtp.hostinger.com",
+    port: Number(process.env.SMTP_PORT || 465),
     secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 };
 
+// SEND OTP
 router.post("/send", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -37,7 +38,7 @@ router.post("/send", async (req, res) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         success: false,
-        message: "Email credentials missing in Render environment",
+        message: "Email credentials missing",
       });
     }
 
@@ -82,11 +83,15 @@ router.post("/send", async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to send OTP",
+      message:
+        error.code === "ETIMEDOUT" || error.code === "ENETUNREACH"
+          ? "Email server connection failed. Check SMTP settings."
+          : error.message || "Failed to send OTP",
     });
   }
 });
 
+// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
