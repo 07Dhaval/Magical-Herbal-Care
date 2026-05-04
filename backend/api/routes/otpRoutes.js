@@ -10,19 +10,15 @@ const generateOtp = () => {
 
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    family: 4, // Render IPv6 issue fix
-    requireTLS: true,
+    service: "gmail",
+    pool: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    tls: {
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: true,
-    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 };
 
@@ -57,9 +53,9 @@ router.post("/send", async (req, res) => {
 
     const transporter = createTransporter();
 
-    await transporter.verify();
+    console.log("Sending OTP to:", email);
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your OTP Verification Code",
@@ -75,6 +71,8 @@ router.post("/send", async (req, res) => {
         </div>
       `,
     });
+
+    console.log("OTP Email Sent:", info.messageId);
 
     return res.status(200).json({
       success: true,
