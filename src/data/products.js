@@ -33,7 +33,7 @@ export const products = [
       note:
         "This product is 100% natural, chemical-free, and handmade in small batches with proper care.",
 
-      suitable: "Suitable for all hair types.",
+      suitable: " ",
     },
   },
 ];
