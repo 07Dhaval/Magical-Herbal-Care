@@ -67,19 +67,5 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Auto set main image from images array
-productSchema.pre("save", function (next) {
-  try {
-    if (!this.image && this.images && this.images.length > 0) {
-      this.image = this.images[0];
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
 module.exports =
-  mongoose.models.Product ||
-  mongoose.model("Product", productSchema);
+  mongoose.models.Product || mongoose.model("Product", productSchema);
