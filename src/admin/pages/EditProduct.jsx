@@ -2,19 +2,20 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ImagePlus, UploadCloud } from "lucide-react";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -32,7 +33,6 @@ export default function EditProduct() {
     suitable: "",
   });
 
-  const [oldImages, setOldImages] = useState(["", "", ""]);
   const [newImages, setNewImages] = useState([null, null, null]);
   const [previewImages, setPreviewImages] = useState(["", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -46,16 +46,6 @@ export default function EditProduct() {
   };
 
   useEffect(() => {
-    return () => {
-      previewImages.forEach((url) => {
-        if (url && url.startsWith("blob:")) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, [previewImages]);
-
-  useEffect(() => {
     const fetchProduct = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/products/${id}`);
@@ -67,6 +57,7 @@ export default function EditProduct() {
 
         const product = data.product;
         const desc = product.description || {};
+
         const imgs =
           Array.isArray(product.images) && product.images.length > 0
             ? product.images
@@ -90,10 +81,11 @@ export default function EditProduct() {
           suitable: desc.suitable || "",
         });
 
-        const fixedImages = [imgs[0] || "", imgs[1] || "", imgs[2] || ""];
-
-        setOldImages(fixedImages);
-        setPreviewImages(fixedImages.map((img) => getImageUrl(img)));
+        setPreviewImages([
+          getImageUrl(imgs[0] || ""),
+          getImageUrl(imgs[1] || ""),
+          getImageUrl(imgs[2] || ""),
+        ]);
       } catch (error) {
         console.error("Fetch product error:", error);
         alert(error.message || "Failed to fetch product");
@@ -102,6 +94,16 @@ export default function EditProduct() {
 
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      previewImages.forEach((url) => {
+        if (url && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [previewImages]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -133,12 +135,11 @@ export default function EditProduct() {
     setPreviewImages(updatedPreviews);
   };
 
-  const cleanLines = (value) => {
-    return value
+  const cleanLines = (value) =>
+    value
       .split("\n")
       .map((item) => item.trim())
       .filter(Boolean);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -163,12 +164,14 @@ export default function EditProduct() {
       const formData = new FormData();
       formData.append("name", form.name.trim());
       formData.append("category", form.category.trim());
-      formData.append("price", Number(form.price));
+      formData.append("price", form.price);
       formData.append("description", JSON.stringify(description));
-      formData.append("oldImages", JSON.stringify(oldImages));
 
-      newImages.forEach((image) => {
-        if (image) formData.append("images", image);
+      newImages.forEach((file, index) => {
+        if (file) {
+          if (index === 0) formData.append("image", file);
+          formData.append("images", file);
+        }
       });
 
       const res = await fetch(`${API_BASE_URL}/api/products/${id}`, {
@@ -202,31 +205,9 @@ export default function EditProduct() {
         onSubmit={handleSubmit}
         className="bg-white border border-[#e7dcc3] rounded-2xl p-6 space-y-4 max-w-5xl shadow-sm"
       >
-        <input
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="Product Name"
-          className="input"
-        />
-
-        <input
-          name="category"
-          value={form.category}
-          onChange={handleChange}
-          placeholder="Category"
-          className="input"
-        />
-
-        <input
-          name="price"
-          value={form.price}
-          onChange={handleChange}
-          placeholder="Price"
-          type="text"
-          inputMode="decimal"
-          className="input"
-        />
+        <input name="name" value={form.name} onChange={handleChange} placeholder="Product Name" className="input" />
+        <input name="category" value={form.category} onChange={handleChange} placeholder="Category" className="input" />
+        <input name="price" value={form.price} onChange={handleChange} placeholder="Price" type="text" inputMode="decimal" className="input" />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[0, 1, 2].map((index) => (
@@ -252,67 +233,22 @@ export default function EditProduct() {
                   <div className="w-12 h-12 rounded-full bg-[#2f4f2f] text-white flex items-center justify-center mb-3">
                     <UploadCloud size={24} />
                   </div>
-
                   <h3 className="text-[#2f4f2f] font-semibold">
                     Upload Image {index + 1}
                   </h3>
-
-                  <p className="text-[#b48a2c] text-sm mt-1">
-                    PNG, JPG, WEBP
-                  </p>
+                  <p className="text-[#b48a2c] text-sm mt-1">PNG, JPG, WEBP</p>
                 </>
               )}
             </label>
           ))}
         </div>
 
-        <textarea
-          name="intro"
-          value={form.intro}
-          onChange={handleChange}
-          placeholder="Intro Description"
-          className="input min-h-[90px]"
-        />
-
-        <textarea
-          name="ingredients"
-          value={form.ingredients}
-          onChange={handleChange}
-          placeholder="Ingredients - one per line"
-          className="input min-h-[120px]"
-        />
-
-        <textarea
-          name="process"
-          value={form.process}
-          onChange={handleChange}
-          placeholder="Process"
-          className="input min-h-[90px]"
-        />
-
-        <textarea
-          name="benefits"
-          value={form.benefits}
-          onChange={handleChange}
-          placeholder="Benefits - one per line"
-          className="input min-h-[120px]"
-        />
-
-        <textarea
-          name="note"
-          value={form.note}
-          onChange={handleChange}
-          placeholder="Note"
-          className="input min-h-[80px]"
-        />
-
-        <input
-          name="suitable"
-          value={form.suitable}
-          onChange={handleChange}
-          placeholder="Suitable For"
-          className="input"
-        />
+        <textarea name="intro" value={form.intro} onChange={handleChange} placeholder="Intro Description" className="input min-h-[90px]" />
+        <textarea name="ingredients" value={form.ingredients} onChange={handleChange} placeholder="Ingredients - one per line" className="input min-h-[120px]" />
+        <textarea name="process" value={form.process} onChange={handleChange} placeholder="Process" className="input min-h-[90px]" />
+        <textarea name="benefits" value={form.benefits} onChange={handleChange} placeholder="Benefits - one per line" className="input min-h-[120px]" />
+        <textarea name="note" value={form.note} onChange={handleChange} placeholder="Note" className="input min-h-[80px]" />
+        <input name="suitable" value={form.suitable} onChange={handleChange} placeholder="Suitable For" className="input" />
 
         <button
           type="submit"

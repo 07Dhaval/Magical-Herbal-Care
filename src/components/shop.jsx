@@ -1,9 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
-).replace(/\/$/, "");
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
+
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const getProductImage = (item) => {
   const image = item?.image || item?.images?.[0] || "";
@@ -22,7 +33,7 @@ const getProductImage = (item) => {
 };
 
 function ShopCard({ item }) {
-  const productId = item._id;
+  const productId = item?._id || item?.id;
 
   return (
     <Link
@@ -33,7 +44,7 @@ function ShopCard({ item }) {
       <div className="w-full max-w-[280px] h-[390px] mx-auto bg-white border border-[#e7dcc3] rounded-[20px] flex items-center justify-center overflow-hidden shadow-sm transition duration-300 group-hover:shadow-md">
         <img
           src={getProductImage(item)}
-          alt={item.name}
+          alt={item?.name || "Product"}
           onError={(e) => {
             e.currentTarget.src = "/placeholder-product.png";
           }}
@@ -42,15 +53,15 @@ function ShopCard({ item }) {
       </div>
 
       <h3 className="mt-4 text-[17px] sm:text-[16px] text-[#b48a2c] leading-none">
-        {item.name}
+        {item?.name || "Untitled Product"}
       </h3>
 
       <p className="mt-2 text-[12px] text-[#2f4f2f] leading-none">
-        {item.category}
+        {item?.category || ""}
       </p>
 
       <p className="mt-2 text-[14px] text-[#2f4f2f] font-medium leading-none">
-        ₹{Number(item.price || 0).toFixed(2)}
+        ₹{Number(item?.price || 0).toFixed(2)}
       </p>
     </Link>
   );
@@ -92,19 +103,19 @@ export default function Shop() {
   const categories = useMemo(() => {
     return [
       "All",
-      ...new Set(products.map((item) => item.category).filter(Boolean)),
+      ...new Set(products.map((item) => item?.category).filter(Boolean)),
     ];
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
       const matchesCategory =
-        selectedCategory === "All" || item.category === selectedCategory;
+        selectedCategory === "All" || item?.category === selectedCategory;
 
       const matchesSearch =
         !searchTerm ||
-        item.name?.toLowerCase().includes(searchTerm) ||
-        item.category?.toLowerCase().includes(searchTerm);
+        item?.name?.toLowerCase().includes(searchTerm) ||
+        item?.category?.toLowerCase().includes(searchTerm);
 
       return matchesCategory && matchesSearch;
     });
@@ -164,7 +175,7 @@ export default function Shop() {
         ) : (
           <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 sm:gap-x-5 md:gap-x-2 gap-y-8 sm:gap-y-10">
             {filteredProducts.map((item) => (
-              <ShopCard key={item._id} item={item} />
+              <ShopCard key={item?._id || item?.id} item={item} />
             ))}
           </div>
         )}

@@ -4,20 +4,20 @@ import { ShoppingBag, X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
 
+const API_BASE_URL = getApiBaseUrl();
 const LOGIN_DURATION = 5 * 60 * 1000;
 
 const safeJsonParse = (key, fallback) => {
@@ -42,7 +42,17 @@ const getRegisteredUser = () => {
   return savedUser;
 };
 
-const getItemId = (item) => item._id || item.id;
+const getItemId = (item) => item?._id || item?.id;
+
+const getImageUrl = (item) => {
+  const image = item?.image || item?.images?.[0] || "";
+
+  if (!image) return "/placeholder-product.png";
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
+  if (image.startsWith("/uploads")) return `${API_BASE_URL}${image}`;
+
+  return `${API_BASE_URL}/uploads/products/${image}`;
+};
 
 export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
@@ -62,8 +72,7 @@ export default function Cart() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedCart = safeJsonParse("cartItems", []);
-    setCartItems(savedCart);
+    setCartItems(safeJsonParse("cartItems", []));
   }, []);
 
   useEffect(() => {
@@ -96,7 +105,7 @@ export default function Cart() {
       const res = await fetch(`${API_BASE_URL}/api/otp/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginData.email }),
+        body: JSON.stringify({ email: loginData.email.trim().toLowerCase() }),
       });
 
       const data = await res.json();
@@ -127,7 +136,7 @@ export default function Cart() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim().toLowerCase(),
           otp: loginData.otp,
         }),
       });
@@ -139,21 +148,16 @@ export default function Cart() {
       }
 
       const user = {
-        name: loginData.name,
-        email: loginData.email,
+        name: loginData.name.trim(),
+        email: loginData.email.trim().toLowerCase(),
         expiryTime: Date.now() + LOGIN_DURATION,
       };
 
       localStorage.setItem("registeredUser", JSON.stringify(user));
       setUserData(user);
       setShowLoginForm(false);
-
       setOtpSent(false);
-      setLoginData({
-        name: "",
-        email: "",
-        otp: "",
-      });
+      setLoginData({ name: "", email: "", otp: "" });
 
       if (pendingCheckout) {
         setPendingCheckout(false);
@@ -195,6 +199,8 @@ export default function Cart() {
       ...item,
       id: getItemId(item),
       _id: item._id || getItemId(item),
+      image: getImageUrl(item),
+      images: item.images || [getImageUrl(item)],
       quantity: item.quantity || 1,
     };
 
@@ -216,22 +222,14 @@ export default function Cart() {
     setShowLoginForm(false);
     setPendingCheckout(false);
     setOtpSent(false);
-    setLoginData({
-      name: "",
-      email: "",
-      otp: "",
-    });
+    setLoginData({ name: "", email: "", otp: "" });
   };
 
   const parsePrice = (price) => {
     if (price === undefined || price === null) return 0;
-
     if (typeof price === "number") return price;
 
-    const match = String(price)
-      .replace(/,/g, "")
-      .match(/\d+(\.\d+)?/);
-
+    const match = String(price).replace(/,/g, "").match(/\d+(\.\d+)?/);
     return match ? parseFloat(match[0]) : 0;
   };
 
@@ -287,8 +285,11 @@ export default function Cart() {
                     >
                       <div className="bg-white h-[240px] flex items-center justify-center p-4">
                         <img
-                          src={item.image || item.images?.[0]}
-                          alt={item.name}
+                          src={getImageUrl(item)}
+                          alt={item.name || "Product"}
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder-product.png";
+                          }}
                           className="w-full h-full object-contain"
                         />
                       </div>
@@ -407,10 +408,7 @@ export default function Cart() {
                 value={loginData.name}
                 disabled={otpSent}
                 onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
+                  setLoginData((prev) => ({ ...prev, name: e.target.value }))
                 }
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
@@ -421,10 +419,7 @@ export default function Cart() {
                 value={loginData.email}
                 disabled={otpSent}
                 onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
+                  setLoginData((prev) => ({ ...prev, email: e.target.value }))
                 }
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />

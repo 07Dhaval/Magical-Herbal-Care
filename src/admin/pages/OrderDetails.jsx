@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -29,9 +30,7 @@ export default function OrderDetails() {
     return match ? Number(match[0]) : 0;
   };
 
-  const formatPrice = (amount) => {
-    return `Rs. ${Number(amount || 0).toFixed(2)}`;
-  };
+  const formatPrice = (amount) => `Rs. ${Number(amount || 0).toFixed(2)}`;
 
   const getOrderTotal = (orderData) => {
     const savedTotal = getPrice(
@@ -117,8 +116,9 @@ export default function OrderDetails() {
           <p><b>Phone:</b> {order.customer?.phone || "-"}</p>
           <p>
             <b>Address:</b>{" "}
-            {order.customer?.address || "-"}, {order.customer?.city || ""},{" "}
-            {order.customer?.state || ""} - {order.customer?.pincode || ""}
+            {[order.customer?.address, order.customer?.city, order.customer?.state, order.customer?.pincode]
+              .filter(Boolean)
+              .join(", ") || "-"}
           </p>
         </div>
 
@@ -133,9 +133,7 @@ export default function OrderDetails() {
           <p><b>Order Status:</b> {order.orderStatus || "Pending"}</p>
           <p>
             <b>Date:</b>{" "}
-            {order.createdAt
-              ? new Date(order.createdAt).toLocaleString()
-              : "-"}
+            {order.createdAt ? new Date(order.createdAt).toLocaleString("en-IN") : "-"}
           </p>
         </div>
       </div>
@@ -157,25 +155,33 @@ export default function OrderDetails() {
             </thead>
 
             <tbody>
-              {(order.items || []).map((item, index) => {
-                const price = getPrice(item.price);
-                const qty = Number(item.quantity || 1);
+              {(order.items || []).length > 0 ? (
+                order.items.map((item, index) => {
+                  const price = getPrice(item.price);
+                  const qty = Number(item.quantity || 1);
 
-                return (
-                  <tr key={index} className="border-t border-[#e7dcc3]">
-                    <td className="p-4 text-[#2f4f2f]">
-                      {item.name || "Product"}
-                    </td>
-                    <td className="p-4 text-[#2f4f2f]">{qty}</td>
-                    <td className="p-4 text-[#2f4f2f]">
-                      {formatPrice(price)}
-                    </td>
-                    <td className="p-4 text-[#b48a2c] font-semibold">
-                      {formatPrice(price * qty)}
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={index} className="border-t border-[#e7dcc3]">
+                      <td className="p-4 text-[#2f4f2f]">
+                        {item.name || "Product"}
+                      </td>
+                      <td className="p-4 text-[#2f4f2f]">{qty}</td>
+                      <td className="p-4 text-[#2f4f2f]">
+                        {formatPrice(price)}
+                      </td>
+                      <td className="p-4 text-[#b48a2c] font-semibold">
+                        {formatPrice(price * qty)}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="4" className="p-4 text-center text-[#2f4f2f]">
+                    No products found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

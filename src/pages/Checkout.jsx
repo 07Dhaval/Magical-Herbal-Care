@@ -4,20 +4,20 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
 
+const API_BASE_URL = getApiBaseUrl();
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 const LOGIN_DURATION = 5 * 60 * 1000;
 
@@ -36,7 +36,6 @@ const getProductId = (item) =>
 const parsePrice = (price) => {
   if (typeof price === "number") return price;
   if (!price) return 0;
-
   const match = String(price).replace(/,/g, "").match(/\d+(\.\d+)?/);
   return match ? parseFloat(match[0]) : 0;
 };
@@ -100,13 +99,9 @@ export default function Checkout() {
 
   useEffect(() => {
     const checkoutMode = localStorage.getItem("checkoutMode");
-
     const cartItems = safeJsonParse("cartItems", []);
     const buyNowData = safeJsonParse("buyNowItem", null);
-
-    const buyNowItem = Array.isArray(buyNowData)
-      ? buyNowData[0]
-      : buyNowData;
+    const buyNowItem = Array.isArray(buyNowData) ? buyNowData[0] : buyNowData;
 
     const normalizedCartItems = cartItems
       .map(normalizeCheckoutItem)
@@ -134,14 +129,8 @@ export default function Checkout() {
       return;
     }
 
-    if (normalizedCartItems.length > 0) {
-      setCheckoutItems(normalizedCartItems);
-      localStorage.setItem("checkoutMode", "cart");
-      localStorage.setItem("cartItems", JSON.stringify(normalizedCartItems));
-      return;
-    }
-
-    setCheckoutItems([]);
+    setCheckoutItems(normalizedCartItems);
+    localStorage.setItem("checkoutMode", "cart");
   }, []);
 
   useEffect(() => {
@@ -204,28 +193,27 @@ export default function Checkout() {
   };
 
   const increaseQty = (id) => {
-    const updated = checkoutItems.map((item) =>
-      getProductId(item) === id
-        ? { ...item, quantity: Number(item.quantity || 1) + 1 }
-        : item
+    saveCheckoutItems(
+      checkoutItems.map((item) =>
+        getProductId(item) === id
+          ? { ...item, quantity: Number(item.quantity || 1) + 1 }
+          : item
+      )
     );
-
-    saveCheckoutItems(updated);
   };
 
   const decreaseQty = (id) => {
-    const updated = checkoutItems.map((item) =>
-      getProductId(item) === id
-        ? { ...item, quantity: Math.max(1, Number(item.quantity || 1) - 1) }
-        : item
+    saveCheckoutItems(
+      checkoutItems.map((item) =>
+        getProductId(item) === id
+          ? { ...item, quantity: Math.max(1, Number(item.quantity || 1) - 1) }
+          : item
+      )
     );
-
-    saveCheckoutItems(updated);
   };
 
   const removeCheckoutItem = (id) => {
-    const updated = checkoutItems.filter((item) => getProductId(item) !== id);
-    saveCheckoutItems(updated);
+    saveCheckoutItems(checkoutItems.filter((item) => getProductId(item) !== id));
   };
 
   const fetchPincodeDetails = async (pincode) => {
@@ -363,7 +351,7 @@ export default function Checkout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim().toLowerCase(),
         }),
       });
 
@@ -395,7 +383,7 @@ export default function Checkout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim().toLowerCase(),
           otp: loginData.otp,
         }),
       });
@@ -407,8 +395,8 @@ export default function Checkout() {
       }
 
       const user = {
-        name: loginData.name,
-        email: loginData.email,
+        name: loginData.name.trim(),
+        email: loginData.email.trim().toLowerCase(),
         expiryTime: Date.now() + LOGIN_DURATION,
       };
 
@@ -464,7 +452,7 @@ export default function Checkout() {
     }
 
     if (!RAZORPAY_KEY_ID) {
-      alert("Razorpay key missing. Add VITE_RAZORPAY_KEY_ID in frontend environment variables.");
+      alert("Razorpay key missing. Add VITE_RAZORPAY_KEY_ID in frontend .env");
       return;
     }
 

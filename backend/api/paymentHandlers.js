@@ -2,6 +2,14 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const Order = require("./models/Order");
 
+const parsePrice = (value) => {
+  if (typeof value === "number") return value;
+  if (!value) return 0;
+
+  const match = String(value).replace(/,/g, "").match(/\d+(\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+};
+
 function getCredentialSet() {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -22,11 +30,23 @@ function createRazorpayClient() {
   });
 }
 
+function cleanItems(items = []) {
+  return items.map((item) => ({
+    productId: String(item.productId || item._id || item.id || ""),
+    name: String(item.name || "Product"),
+    category: String(item.category || ""),
+    image: String(item.image || item.images?.[0] || ""),
+    price: parsePrice(item.price),
+    quantity: Math.max(1, Number(item.quantity || 1)),
+  }));
+}
+
 async function createOrderHandler(req, res) {
   try {
     const { amount } = req.body || {};
+    const finalAmount = parsePrice(amount);
 
-    if (!amount || Number(amount) <= 0) {
+    if (!finalAmount || finalAmount <= 0) {
       return res.status(400).json({
         success: false,
         message: "Valid amount is required",
@@ -36,9 +56,10 @@ async function createOrderHandler(req, res) {
     const razorpay = createRazorpayClient();
 
     const order = await razorpay.orders.create({
-      amount: Math.round(Number(amount) * 100),
+      amount: Math.round(finalAmount * 100),
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
+      receipt: `MHC_${Date.now()}`,
+      payment_capture: 1,
     });
 
     return res.status(200).json({
@@ -47,7 +68,7 @@ async function createOrderHandler(req, res) {
       order,
     });
   } catch (error) {
-    console.error("Create order error:", error);
+    console.error("Create Razorpay order error:", error);
 
     return res.status(500).json({
       success: false,
@@ -62,9 +83,10 @@ async function paymentSuccessHandler(req, res) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      customer,
-      items,
+      customer = {},
+      items = [],
       total,
+      totalAmount,
     } = req.body || {};
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -88,15 +110,39 @@ async function paymentSuccessHandler(req, res) {
       });
     }
 
+    const cleanedItems = cleanItems(items);
+
+    if (!cleanedItems.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No order items found",
+      });
+    }
+
+    const calculatedTotal = cleanedItems.reduce((sum, item) => {
+      return sum + item.price * item.quantity;
+    }, 0);
+
+    const finalTotal = parsePrice(totalAmount || total) || calculatedTotal;
+
     const newOrder = await Order.create({
-      customer,
-      items,
-      total,
+      customer: {
+        name: customer.name || "",
+        email: customer.email || "",
+        phone: customer.phone || "",
+        address: customer.address || "",
+        city: customer.city || "",
+        state: customer.state || "",
+        pincode: customer.pincode || "",
+      },
+      items: cleanedItems,
+      totalAmount: finalTotal,
       paymentMethod: "Razorpay",
-      paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      paymentStatus: "paid",
-      status: "confirmed",
+      paymentStatus: "Paid",
+      orderStatus: "Pending",
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
     });
 
     return res.status(200).json({
@@ -116,24 +162,38 @@ async function paymentSuccessHandler(req, res) {
 
 async function codOrderHandler(req, res) {
   try {
-    const { customer, items, total } = req.body || {};
+    const { customer = {}, items = [], total, totalAmount } = req.body || {};
 
-    if (!customer || !items || !Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Customer and items are required",
       });
     }
 
+    const cleanedItems = cleanItems(items);
+
+    const calculatedTotal = cleanedItems.reduce((sum, item) => {
+      return sum + item.price * item.quantity;
+    }, 0);
+
+    const finalTotal = parsePrice(totalAmount || total) || calculatedTotal;
+
     const newOrder = await Order.create({
-      customer,
-      items,
-      total,
-      paymentMethod: "Cash on Delivery",
-      paymentId: "",
-      orderId: `COD_${Date.now()}`,
-      paymentStatus: "pending",
-      status: "pending",
+      customer: {
+        name: customer.name || "",
+        email: customer.email || "",
+        phone: customer.phone || "",
+        address: customer.address || "",
+        city: customer.city || "",
+        state: customer.state || "",
+        pincode: customer.pincode || "",
+      },
+      items: cleanedItems,
+      totalAmount: finalTotal,
+      paymentMethod: "COD",
+      paymentStatus: "Pending",
+      orderStatus: "Pending",
     });
 
     return res.status(200).json({
@@ -160,4 +220,4 @@ module.exports = {
   paymentSuccessHandler,
   codOrderHandler,
   paymentLinkCallbackHandler,
-};  
+};

@@ -2,22 +2,28 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Star, X } from "lucide-react";
 import { useLocation, useParams } from "react-router-dom";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
-).replace(/\/$/, "");
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
+
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const LOGIN_DURATION = 5 * 60 * 1000;
 
 const getImageUrl = (image) => {
   if (!image) return "/placeholder-product.png";
 
-  if (image.startsWith("http://") || image.startsWith("https://")) {
-    return image;
-  }
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
 
-  if (image.startsWith("/uploads")) {
-    return `${API_BASE_URL}${image}`;
-  }
+  if (image.startsWith("/uploads")) return `${API_BASE_URL}${image}`;
 
   return `${API_BASE_URL}/uploads/products/${image}`;
 };
@@ -65,6 +71,12 @@ export default function ProductDetails() {
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) {
+        setProduct(stateProduct);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
@@ -78,12 +90,7 @@ export default function ProductDetails() {
         setProduct(data.product);
       } catch (error) {
         console.error("Fetch product error:", error);
-
-        if (stateProduct) {
-          setProduct(stateProduct);
-        } else {
-          setProduct(null);
-        }
+        setProduct(stateProduct || null);
       } finally {
         setLoading(false);
       }
@@ -99,9 +106,7 @@ export default function ProductDetails() {
 
     const images = [];
 
-    if (product.image) {
-      images.push(getImageUrl(product.image));
-    }
+    if (product.image) images.push(getImageUrl(product.image));
 
     if (Array.isArray(product.images)) {
       product.images.forEach((img) => {
@@ -143,8 +148,9 @@ export default function ProductDetails() {
   });
 
   const addProductToWishlist = () => {
-    const existingWishlist =
-      JSON.parse(localStorage.getItem("wishlistItems")) || [];
+    if (!product || !productId) return;
+
+    const existingWishlist = JSON.parse(localStorage.getItem("wishlistItems")) || [];
 
     const alreadyExists = existingWishlist.some(
       (item) => String(item._id || item.id) === String(productId)
@@ -161,6 +167,8 @@ export default function ProductDetails() {
   };
 
   const addProductToCart = () => {
+    if (!product || !productId) return;
+
     const existingCart = JSON.parse(localStorage.getItem("cartItems")) || [];
 
     const alreadyExists = existingCart.some(
@@ -182,10 +190,8 @@ export default function ProductDetails() {
 
     if (user) {
       setUserData(user);
-
       if (action === "cart") addProductToCart();
       if (action === "wishlist") addProductToWishlist();
-
       return;
     }
 
@@ -213,7 +219,7 @@ export default function ProductDetails() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim().toLowerCase(),
         }),
       });
 
@@ -247,7 +253,7 @@ export default function ProductDetails() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email,
+          email: loginData.email.trim().toLowerCase(),
           otp: loginData.otp,
         }),
       });
@@ -259,8 +265,8 @@ export default function ProductDetails() {
       }
 
       const user = {
-        name: loginData.name,
-        email: loginData.email,
+        name: loginData.name.trim(),
+        email: loginData.email.trim().toLowerCase(),
         expiryTime: Date.now() + LOGIN_DURATION,
       };
 
@@ -273,11 +279,7 @@ export default function ProductDetails() {
 
       setPendingAction("");
       setOtpSent(false);
-      setLoginData({
-        name: "",
-        email: "",
-        otp: "",
-      });
+      setLoginData({ name: "", email: "", otp: "" });
     } catch (error) {
       alert(error.message || "OTP verification failed");
     } finally {
@@ -289,11 +291,7 @@ export default function ProductDetails() {
     setShowLoginForm(false);
     setPendingAction("");
     setOtpSent(false);
-    setLoginData({
-      name: "",
-      email: "",
-      otp: "",
-    });
+    setLoginData({ name: "", email: "", otp: "" });
   };
 
   if (loading) {
@@ -337,7 +335,7 @@ export default function ProductDetails() {
 
               <img
                 src={selectedImage || "/placeholder-product.png"}
-                alt={product.name}
+                alt={product.name || "Product"}
                 onError={(e) => {
                   e.currentTarget.src = "/placeholder-product.png";
                 }}
@@ -359,7 +357,7 @@ export default function ProductDetails() {
                 >
                   <img
                     src={img}
-                    alt={`${product.name} ${index + 1}`}
+                    alt={`${product.name || "Product"} ${index + 1}`}
                     onError={(e) => {
                       e.currentTarget.src = "/placeholder-product.png";
                     }}
@@ -375,86 +373,46 @@ export default function ProductDetails() {
               {product.name}
             </h1>
 
-            <div className="mt-4 flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[#e0b85a]">
-                <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star size={14} fill="currentColor" strokeWidth={0} />
-                <Star size={14} className="text-[#ddd]" />
-              </div>
-              <span className="text-[12px] text-[#666]">(15)</span>
-            </div>
-
             <p className="mt-6 text-[22px] sm:text-[28px] text-[#2f4f2f] font-medium">
               ₹{Number(product.price || 0).toFixed(2)}
             </p>
 
-            {Array.isArray(product.description) ? (
-              <ul className="mt-5 space-y-2 text-[15px] sm:text-[16px] text-[#555] leading-8 list-disc pl-5">
-                {product.description.map((point, index) => (
-                  <li key={index}>{point}</li>
-                ))}
-              </ul>
-            ) : typeof product.description === "string" ? (
-              <p className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
-                {product.description}
-              </p>
-            ) : (
+            {typeof product.description === "object" && !Array.isArray(product.description) ? (
               <div className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
-                {product.description?.intro && (
-                  <p className="mb-4">{product.description.intro}</p>
+                {product.description?.intro && <p className="mb-4">{product.description.intro}</p>}
+                {Array.isArray(product.description?.ingredients) && product.description.ingredients.length > 0 && (
+                  <div className="mb-5">
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">Key Ingredients</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {product.description.ingredients.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
                 )}
-
-                {Array.isArray(product.description?.ingredients) &&
-                  product.description.ingredients.length > 0 && (
-                    <div className="mb-5">
-                      <h3 className="text-[#b48a2c] font-semibold mb-2">
-                        Key Ingredients
-                      </h3>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {product.description.ingredients.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                 {product.description?.process && (
                   <div className="mb-5">
-                    <h3 className="text-[#b48a2c] font-semibold mb-2">
-                      Process
-                    </h3>
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">Process</h3>
                     <p>{product.description.process}</p>
                   </div>
                 )}
-
-                {Array.isArray(product.description?.benefits) &&
-                  product.description.benefits.length > 0 && (
-                    <div className="mb-5">
-                      <h3 className="text-[#b48a2c] font-semibold mb-2">
-                        Benefits
-                      </h3>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {product.description.benefits.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                {product.description?.note && (
-                  <p className="mt-4 font-medium text-[#2f4f2f]">
-                    {product.description.note}
-                  </p>
+                {Array.isArray(product.description?.benefits) && product.description.benefits.length > 0 && (
+                  <div className="mb-5">
+                    <h3 className="text-[#b48a2c] font-semibold mb-2">Benefits</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {product.description.benefits.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
                 )}
-
-                {product.description?.suitable && (
-                  <p className="mt-2 text-[#2f4f2f]">
-                    {product.description.suitable}
-                  </p>
-                )}
+                {product.description?.note && <p className="mt-4 font-medium text-[#2f4f2f]">{product.description.note}</p>}
+                {product.description?.suitable && <p className="mt-2 text-[#2f4f2f]">{product.description.suitable}</p>}
               </div>
+            ) : Array.isArray(product.description) ? (
+              <ul className="mt-5 space-y-2 text-[15px] sm:text-[16px] text-[#555] leading-8 list-disc pl-5">
+                {product.description.map((point, index) => <li key={index}>{point}</li>)}
+              </ul>
+            ) : (
+              <p className="mt-5 text-[15px] sm:text-[16px] text-[#555] leading-8">
+                {product.description || ""}
+              </p>
             )}
 
             <div className="mt-4">
@@ -485,8 +443,7 @@ export default function ProductDetails() {
                 {product.category}
               </p>
               <p>
-                <span className="text-[#b48a2c]">Tags:</span> Premium, Herbal,
-                Daily Use
+                <span className="text-[#b48a2c]">Tags:</span> Premium, Herbal, Daily Use
               </p>
             </div>
           </div>
@@ -496,10 +453,7 @@ export default function ProductDetails() {
       {showLoginForm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
           <div className="relative w-full max-w-[420px] bg-white rounded-2xl border border-[#e7dcc3] shadow-xl p-6">
-            <button
-              onClick={closeOtpPopup}
-              className="absolute top-4 right-4 text-[#2f4f2f]"
-            >
+            <button onClick={closeOtpPopup} className="absolute top-4 right-4 text-[#2f4f2f]">
               <X size={20} />
             </button>
 
@@ -517,12 +471,7 @@ export default function ProductDetails() {
                 placeholder="Enter Your Name"
                 value={loginData.name}
                 disabled={otpSent}
-                onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
+                onChange={(e) => setLoginData((prev) => ({ ...prev, name: e.target.value }))}
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 
@@ -531,12 +480,7 @@ export default function ProductDetails() {
                 placeholder="Enter Email Address"
                 value={loginData.email}
                 disabled={otpSent}
-                onChange={(e) =>
-                  setLoginData((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
+                onChange={(e) => setLoginData((prev) => ({ ...prev, email: e.target.value }))}
                 className="w-full border border-[#e7dcc3] rounded-xl px-4 py-3 outline-none text-[#2f4f2f] disabled:bg-gray-100"
               />
 

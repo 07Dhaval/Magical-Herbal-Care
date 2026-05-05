@@ -6,10 +6,7 @@ const parsePrice = (value) => {
   if (typeof value === "number") return value;
   if (!value) return 0;
 
-  const match = String(value)
-    .replace(/,/g, "")
-    .match(/\d+(\.\d+)?/);
-
+  const match = String(value).replace(/,/g, "").match(/\d+(\.\d+)?/);
   return match ? Number(match[0]) : 0;
 };
 
@@ -21,6 +18,38 @@ const cleanOrderStatus = (status) => {
 const cleanPaymentStatus = (status) => {
   const allowed = ["Pending", "Paid", "Failed", "Refunded"];
   return allowed.includes(status) ? status : "Pending";
+};
+
+const cleanPaymentMethod = (method) => {
+  return method === "Razorpay" ? "Razorpay" : "COD";
+};
+
+const cleanCustomer = (customer = {}) => ({
+  name: String(customer.name || "").trim(),
+  email: String(customer.email || "").trim().toLowerCase(),
+  phone: String(customer.phone || "").trim(),
+  address: String(customer.address || "").trim(),
+  city: String(customer.city || "").trim(),
+  state: String(customer.state || "").trim(),
+  pincode: String(customer.pincode || "").trim(),
+});
+
+const cleanItems = (items = []) => {
+  return items
+    .map((item) => {
+      const price = parsePrice(item.price);
+      const quantity = Math.max(1, Number(item.quantity || 1));
+
+      return {
+        productId: String(item.productId || item._id || item.id || ""),
+        name: String(item.name || "Product").trim(),
+        category: String(item.category || "").trim(),
+        image: String(item.image || item.images?.[0] || ""),
+        price,
+        quantity,
+      };
+    })
+    .filter((item) => item.name && item.price >= 0);
 };
 
 // SAVE COD / RAZORPAY ORDER
@@ -45,18 +74,14 @@ router.post("/payment-success", async (req, res) => {
       });
     }
 
-    const cleanedItems = items.map((item) => {
-      const price = parsePrice(item.price);
-      const quantity = Number(item.quantity || 1);
+    const cleanedItems = cleanItems(items);
 
-      return {
-        productId: String(item.productId || item._id || item.id || ""),
-        name: String(item.name || "Product"),
-        image: String(item.image || item.images?.[0] || ""),
-        price,
-        quantity: quantity > 0 ? quantity : 1,
-      };
-    });
+    if (cleanedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order items",
+      });
+    }
 
     const calculatedTotal = cleanedItems.reduce((sum, item) => {
       return sum + item.price * item.quantity;
@@ -64,27 +89,24 @@ router.post("/payment-success", async (req, res) => {
 
     const finalTotal = parsePrice(totalAmount) || calculatedTotal;
 
-    const order = await Order.create({
-      customer: {
-        name: customer.name || "",
-        email: customer.email || "",
-        phone: customer.phone || "",
-        address: customer.address || "",
-        city: customer.city || "",
-        state: customer.state || "",
-        pincode: customer.pincode || "",
-      },
+    const finalPaymentMethod = cleanPaymentMethod(paymentMethod);
+    const finalPaymentStatus =
+      finalPaymentMethod === "Razorpay"
+        ? cleanPaymentStatus(paymentStatus || "Paid")
+        : cleanPaymentStatus(paymentStatus || "Pending");
 
+    const order = await Order.create({
+      customer: cleanCustomer(customer),
       items: cleanedItems,
       totalAmount: finalTotal,
 
-      paymentMethod: paymentMethod === "Razorpay" ? "Razorpay" : "COD",
-      paymentStatus: cleanPaymentStatus(paymentStatus),
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: finalPaymentStatus,
       orderStatus: cleanOrderStatus(orderStatus),
 
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
+      razorpayOrderId: String(razorpayOrderId || ""),
+      razorpayPaymentId: String(razorpayPaymentId || ""),
+      razorpaySignature: String(razorpaySignature || ""),
     });
 
     return res.status(201).json({
@@ -180,7 +202,7 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
-// UPDATE ORDER STATUS FALLBACK
+// UPDATE ORDER FALLBACK
 router.put("/:id", async (req, res) => {
   try {
     const { orderStatus, paymentStatus } = req.body;
@@ -190,11 +212,10 @@ router.put("/:id", async (req, res) => {
     if (orderStatus) updateData.orderStatus = cleanOrderStatus(orderStatus);
     if (paymentStatus) updateData.paymentStatus = cleanPaymentStatus(paymentStatus);
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const order = await Order.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!order) {
       return res.status(404).json({

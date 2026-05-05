@@ -2,19 +2,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -23,30 +24,21 @@ export default function Products() {
   const getProductId = (product) => product?._id || product?.id;
 
   const getImageUrl = (product) => {
-    const image =
-      product?.image ||
-      product?.images?.[0] ||
-      product?.productImage ||
-      "";
+    const image = product?.image || product?.images?.[0] || "";
 
     if (!image) return "";
 
     if (image.startsWith("http")) return image;
-
-    if (image.startsWith("/")) {
-      return `${API_BASE_URL}${image}`;
-    }
+    if (image.startsWith("/")) return `${API_BASE_URL}${image}`;
 
     return `${API_BASE_URL}/uploads/products/${image}`;
   };
 
   const formatPrice = (price) => {
-    if (price === undefined || price === null) return "₹0.00";
-
     const amount =
       typeof price === "number"
         ? price
-        : Number(String(price).replace(/[^\d.]/g, ""));
+        : Number(String(price || "0").replace(/[^\d.]/g, ""));
 
     return `₹${Number(amount || 0).toFixed(2)}`;
   };
@@ -106,9 +98,7 @@ export default function Products() {
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[#2f4f2f]">
-          Products
-        </h1>
+        <h1 className="text-3xl font-bold text-[#2f4f2f]">Products</h1>
 
         <Link
           to="/admin/products/add"
@@ -150,10 +140,7 @@ export default function Products() {
                 const imageUrl = getImageUrl(product);
 
                 return (
-                  <tr
-                    key={productId}
-                    className="border-t border-[#e7dcc3]"
-                  >
+                  <tr key={productId} className="border-t border-[#e7dcc3]">
                     <td className="p-4">
                       {imageUrl ? (
                         <img

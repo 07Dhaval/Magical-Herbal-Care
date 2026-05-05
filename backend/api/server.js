@@ -14,12 +14,13 @@ async function startServer() {
 
     const app = createApp();
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log(`
 ========================================
  Magical Herbal Care Backend Running
  Environment : ${NODE_ENV}
  Port        : ${PORT}
+ Local URL   : http://localhost:${PORT}
  Health URL  : http://localhost:${PORT}/api/health
 ========================================
       `);
@@ -27,6 +28,10 @@ async function startServer() {
 
     server.on("error", (error) => {
       console.error("Server runtime error:", error.message);
+
+      if (error.code === "EADDRINUSE") {
+        console.error(`Port ${PORT} is already in use.`);
+      }
     });
   } catch (error) {
     console.error("Server start error:", error.message);
@@ -35,14 +40,13 @@ async function startServer() {
   }
 }
 
-/* Handle unhandled promise rejection */
 process.on("unhandledRejection", (error) => {
   console.error("Unhandled Rejection:", error.message);
 });
 
-/* Handle uncaught exception */
 process.on("uncaughtException", (error) => {
   console.error("Uncaught Exception:", error.message);
+  process.exit(1);
 });
 
 startServer();

@@ -37,13 +37,15 @@ export default function OrderSuccess() {
     safeJsonParse("invoiceData", null) ||
     safeJsonParse("orderData", null);
 
+  const customer = order?.customer || {};
+
   const downloadInvoice = () => {
     window.print();
   };
 
   return (
     <section className="min-h-screen bg-[#f8f4ea] flex items-center justify-center px-4 py-16">
-      <div className="bg-white border border-[#e7dcc3] rounded-2xl shadow-sm max-w-[700px] w-full p-8 text-center">
+      <div className="invoice-box bg-white border border-[#e7dcc3] rounded-2xl shadow-sm max-w-[760px] w-full p-8 text-center">
         <h1 className="text-[34px] font-semibold text-[#b48a2c]">
           Order Placed Successfully!
         </h1>
@@ -54,27 +56,53 @@ export default function OrderSuccess() {
 
         {order ? (
           <div className="mt-6 text-left border border-[#e7dcc3] rounded-xl p-5">
-            <p className="text-[#2f4f2f]">
-              <strong>Order No:</strong>{" "}
-              {order.orderNumber || order._id || order.id || "-"}
-            </p>
+            <div className="flex justify-between gap-4 flex-wrap">
+              <p className="text-[#2f4f2f]">
+                <strong>Order No:</strong>{" "}
+                {order.orderNumber || order._id || order.id || "-"}
+              </p>
+
+              <p className="text-[#2f4f2f]">
+                <strong>Date:</strong>{" "}
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleDateString("en-IN")
+                  : new Date().toLocaleDateString("en-IN")}
+              </p>
+            </div>
 
             <p className="text-[#2f4f2f] mt-2">
-              <strong>Payment:</strong>{" "}
-              {order.paymentMethod || "Razorpay"} /{" "}
+              <strong>Payment:</strong> {order.paymentMethod || "Razorpay"} /{" "}
               {order.paymentStatus || "Paid"}
             </p>
 
             <p className="text-[#2f4f2f] mt-2">
-              <strong>Order Status:</strong>{" "}
-              {order.orderStatus || "Pending"}
+              <strong>Order Status:</strong> {order.orderStatus || "Pending"}
             </p>
 
-            <p className="text-[#2f4f2f] mt-2">
-              <strong>Total:</strong> {formatPrice(getOrderTotal(order))}
-            </p>
+            {customer?.name && (
+              <div className="mt-4 border-t border-[#eee] pt-4">
+                <strong className="text-[#b48a2c]">Customer Details:</strong>
 
-            <div className="mt-4">
+                <p className="text-[#2f4f2f] mt-2">
+                  {customer.name}
+                  {customer.phone ? ` | ${customer.phone}` : ""}
+                </p>
+
+                {customer.email && (
+                  <p className="text-[#2f4f2f] mt-1">{customer.email}</p>
+                )}
+
+                {(customer.address || customer.city || customer.state || customer.pincode) && (
+                  <p className="text-[#2f4f2f] mt-1">
+                    {[customer.address, customer.city, customer.state, customer.pincode]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4 border-t border-[#eee] pt-4">
               <strong className="text-[#b48a2c]">Products:</strong>
 
               {(order.items || []).length > 0 ? (
@@ -88,7 +116,7 @@ export default function OrderSuccess() {
                       className="mt-3 flex justify-between gap-4 border-b border-[#eee] pb-2"
                     >
                       <span className="text-[#2f4f2f]">
-                        {item.name || "Product"} x {quantity}
+                        {item.name || "Product"} × {quantity}
                       </span>
 
                       <span className="text-[#2f4f2f] whitespace-nowrap">
@@ -101,6 +129,11 @@ export default function OrderSuccess() {
                 <p className="mt-3 text-[#2f4f2f]">No products found.</p>
               )}
             </div>
+
+            <div className="mt-5 flex justify-between items-center text-[18px] font-semibold text-[#b48a2c]">
+              <span>Total</span>
+              <span>{formatPrice(getOrderTotal(order))}</span>
+            </div>
           </div>
         ) : (
           <div className="mt-6 text-[#2f4f2f] border border-[#e7dcc3] rounded-xl p-5">
@@ -108,7 +141,7 @@ export default function OrderSuccess() {
           </div>
         )}
 
-        <div className="mt-7 flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="action-buttons mt-7 flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={downloadInvoice}
             disabled={!order}
@@ -132,21 +165,22 @@ export default function OrderSuccess() {
             visibility: hidden;
           }
 
-          section,
-          section * {
+          .invoice-box,
+          .invoice-box * {
             visibility: visible;
           }
 
-          section {
+          .invoice-box {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
-            background: white !important;
+            max-width: 100%;
+            box-shadow: none !important;
+            border: none !important;
           }
 
-          a,
-          button {
+          .action-buttons {
             display: none !important;
           }
         }

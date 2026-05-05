@@ -4,18 +4,26 @@ const Otp = require("../models/Otp");
 
 const router = express.Router();
 
+const OTP_EXPIRY_MINUTES = 5;
+
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: "smtp.hostinger.com",
-    port: 465,
-    secure: true,
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 465),
+    secure: String(process.env.SMTP_SECURE || "true") === "true",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
   });
 };
 
@@ -23,10 +31,10 @@ router.post("/send", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
 
-    if (!email) {
+    if (!email || !isValidEmail(email)) {
       return res.status(400).json({
         success: false,
-        message: "Email is required",
+        message: "Please enter a valid email address",
       });
     }
 
@@ -38,24 +46,36 @@ router.post("/send", async (req, res) => {
     }
 
     const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
     await Otp.deleteMany({ email });
 
     await Otp.create({
       email,
       otp,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      expiresAt,
     });
 
     const transporter = createTransporter();
+
+    await transporter.verify();
 
     await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your Magical Herbal Care OTP",
       html: `
-        <h2>Your OTP is ${otp}</h2>
-        <p>This OTP is valid for 5 minutes.</p>
+        <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
+          <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
+            <h2 style="color:#b48a2c;margin-top:0;">Magical Herbal Care OTP</h2>
+            <p style="color:#2f4f2f;">Your verification code is:</p>
+            <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2f4f2f;margin:18px 0;">
+              ${otp}
+            </div>
+            <p style="color:#555;">This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
+            <p style="color:#777;font-size:13px;">If you did not request this, please ignore this email.</p>
+          </div>
+        </div>
       `,
     });
 
@@ -79,10 +99,10 @@ router.post("/verify", async (req, res) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const otp = String(req.body.otp || "").trim();
 
-    if (!email || !otp) {
+    if (!email || !isValidEmail(email) || !otp) {
       return res.status(400).json({
         success: false,
-        message: "Email and OTP are required",
+        message: "Valid email and OTP are required",
       });
     }
 

@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 
-const LOCAL_API =
-  import.meta.env.VITE_API_BASE_URL || "http://magical-herbal-care.onrender.com";
+const getApiBaseUrl = () => {
+  const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
 
-const RENDER_API =
-  import.meta.env.VITE_RENDER_API_BASE_URL ||
-  "https://magical-herbal-care.onrender.com";
+  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const renderUrl =
+    import.meta.env.VITE_RENDER_API_URL ||
+    "https://magical-herbal-care.onrender.com";
 
-const API_BASE_URL = (
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? LOCAL_API
-    : RENDER_API
-).replace(/\/$/, "");
+  return (isLocal ? localUrl : renderUrl).replace(/\/$/, "");
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -24,22 +25,17 @@ export default function Orders() {
     if (typeof value === "number") return value;
     if (!value) return 0;
 
-    const match = String(value)
-      .replace(/,/g, "")
-      .match(/\d+(\.\d+)?/);
-
+    const match = String(value).replace(/,/g, "").match(/\d+(\.\d+)?/);
     return match ? Number(match[0]) : 0;
   };
 
   const getOrderTotal = (order) => {
-    const savedTotal = getPrice(
-      order.totalAmount || order.total || order.amount
-    );
+    const savedTotal = getPrice(order?.totalAmount || order?.total || order?.amount);
 
     if (savedTotal > 0) return savedTotal;
 
-    return (order.items || []).reduce((sum, item) => {
-      return sum + getPrice(item.price) * (item.quantity || 1);
+    return (order?.items || []).reduce((sum, item) => {
+      return sum + getPrice(item.price) * Number(item.quantity || 1);
     }, 0);
   };
 
@@ -54,11 +50,7 @@ export default function Orders() {
       const res = await fetch(`${API_BASE_URL}/api/orders`);
       const data = await res.json();
 
-      if (
-        res.ok &&
-        data.success &&
-        Array.isArray(data.orders)
-      ) {
+      if (res.ok && data.success && Array.isArray(data.orders)) {
         setOrders(data.orders);
       } else {
         setOrders([]);
@@ -80,29 +72,22 @@ export default function Orders() {
     if (!id) return;
 
     try {
-      let res = await fetch(
-        `${API_BASE_URL}/api/orders/${id}/status`,
-        {
+      let res = await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderStatus }),
+      });
+
+      if (!res.ok) {
+        res = await fetch(`${API_BASE_URL}/api/orders/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ orderStatus }),
-        }
-      );
-
-      // fallback if backend uses /:id route
-      if (!res.ok) {
-        res = await fetch(
-          `${API_BASE_URL}/api/orders/${id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ orderStatus }),
-          }
-        );
+        });
       }
 
       const data = await res.json();
@@ -119,30 +104,16 @@ export default function Orders() {
   };
 
   const getPaymentBadge = (status) => {
-    if (status === "Paid") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "Failed") {
-      return "bg-red-100 text-red-700";
-    }
-
+    if (status === "Paid") return "bg-green-100 text-green-700";
+    if (status === "Failed") return "bg-red-100 text-red-700";
     return "bg-[#f8f4ea] text-[#2f4f2f]";
   };
 
   const getOrderBadge = (status) => {
-    if (status === "Delivered") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "Cancelled") {
-      return "bg-red-100 text-red-700";
-    }
-
-    if (status === "Processing") {
-      return "bg-yellow-100 text-yellow-700";
-    }
-
+    if (status === "Delivered") return "bg-green-100 text-green-700";
+    if (status === "Cancelled") return "bg-red-100 text-red-700";
+    if (status === "Processing") return "bg-yellow-100 text-yellow-700";
+    if (status === "Shipped") return "bg-blue-100 text-blue-700";
     return "bg-[#f8f4ea] text-[#2f4f2f]";
   };
 
@@ -161,39 +132,66 @@ export default function Orders() {
         <head>
           <title>Invoice</title>
           <style>
-            body{
-              font-family:Arial;
-              padding:30px;
-              background:#f8f4ea;
+            body {
+              font-family: Arial, sans-serif;
+              padding: 30px;
+              background: #f8f4ea;
+              color: #2f4f2f;
             }
-            .box{
-              background:white;
-              padding:25px;
-              border-radius:12px;
+            .box {
+              background: white;
+              padding: 25px;
+              border-radius: 12px;
             }
-            table{
-              width:100%;
-              border-collapse:collapse;
-              margin-top:20px;
+            h1 {
+              color: #b48a2c;
             }
-            th,td{
-              border:1px solid #ddd;
-              padding:10px;
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
             }
-            th{
-              background:#f1e6ce;
+            th, td {
+              border: 1px solid #ddd;
+              padding: 10px;
+              text-align: left;
+            }
+            th {
+              background: #f1e6ce;
+              color: #b48a2c;
+            }
+            .total {
+              color: #b48a2c;
+              margin-top: 20px;
+            }
+            @media print {
+              button {
+                display: none;
+              }
             }
           </style>
         </head>
         <body>
           <div class="box">
-            <h1 style="color:#b48a2c;">Magical Herbal Care</h1>
+            <h1>Magical Herbal Care</h1>
             <h2>Invoice</h2>
 
-            <p><b>Order ID:</b> ${order.orderNumber || getOrderId(order)}</p>
+            <p><b>Order ID:</b> ${order.orderNumber || getOrderId(order) || "-"}</p>
             <p><b>Customer:</b> ${order.customer?.name || ""}</p>
             <p><b>Email:</b> ${order.customer?.email || ""}</p>
             <p><b>Phone:</b> ${order.customer?.phone || ""}</p>
+            <p><b>Address:</b> ${[
+              order.customer?.address,
+              order.customer?.city,
+              order.customer?.state,
+              order.customer?.pincode,
+            ]
+              .filter(Boolean)
+              .join(", ")}</p>
+            <p><b>Payment:</b> ${order.paymentMethod || "Razorpay"} / ${
+      order.paymentStatus || "Pending"
+    }</p>
+            <p><b>Status:</b> ${order.orderStatus || "Pending"}</p>
 
             <table>
               <thead>
@@ -209,14 +207,14 @@ export default function Orders() {
                 ${(order.items || [])
                   .map((item) => {
                     const price = getPrice(item.price);
-                    const qty = item.quantity || 1;
+                    const qty = Number(item.quantity || 1);
 
                     return `
                       <tr>
                         <td>${item.name || "Product"}</td>
                         <td>${qty}</td>
-                        <td>${price.toFixed(2)}</td>
-                        <td>${(price * qty).toFixed(2)}</td>
+                        <td>Rs. ${price.toFixed(2)}</td>
+                        <td>Rs. ${(price * qty).toFixed(2)}</td>
                       </tr>
                     `;
                   })
@@ -224,13 +222,9 @@ export default function Orders() {
               </tbody>
             </table>
 
-            <h2 style="color:#b48a2c;">
-              Total: Rs. ${orderTotal.toFixed(2)}
-            </h2>
+            <h2 class="total">Total: Rs. ${orderTotal.toFixed(2)}</h2>
 
-            <button onclick="window.print()">
-              Print Invoice
-            </button>
+            <button onclick="window.print()">Print Invoice</button>
           </div>
         </body>
       </html>
@@ -242,9 +236,7 @@ export default function Orders() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h1 className="text-[30px] font-bold text-[#b48a2c]">
-          Orders
-        </h1>
+        <h1 className="text-[30px] font-bold text-[#b48a2c]">Orders</h1>
 
         <p className="mt-1 text-sm text-[#2f4f2f]">
           Manage customer orders and download invoices
@@ -270,19 +262,13 @@ export default function Orders() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td
-                    colSpan="8"
-                    className="py-10 text-center text-[#2f4f2f]"
-                  >
+                  <td colSpan="8" className="py-10 text-center text-[#2f4f2f]">
                     Loading orders...
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="8"
-                    className="py-10 text-center text-[#2f4f2f]"
-                  >
+                  <td colSpan="8" className="py-10 text-center text-[#2f4f2f]">
                     No orders found
                   </td>
                 </tr>
@@ -300,17 +286,14 @@ export default function Orders() {
                       <p className="font-semibold">
                         {order.customer?.name || "Customer"}
                       </p>
-                      <p className="text-xs">
-                        {order.customer?.phone || "-"}
-                      </p>
+                      <p className="text-xs">{order.customer?.phone || "-"}</p>
                     </td>
 
                     <td className="px-4 py-4">
                       {(order.items || []).length > 0 ? (
                         order.items.map((item, index) => (
                           <p key={index} className="text-xs mb-1">
-                            {item.name || "Product"} ×{" "}
-                            {item.quantity || 1}
+                            {item.name || "Product"} × {item.quantity || 1}
                           </p>
                         ))
                       ) : (
@@ -346,24 +329,15 @@ export default function Orders() {
                       <select
                         value={order.orderStatus || "Pending"}
                         onChange={(e) =>
-                          updateStatus(
-                            getOrderId(order),
-                            e.target.value
-                          )
+                          updateStatus(getOrderId(order), e.target.value)
                         }
                         className="rounded-lg border border-[#e7dcc3] px-3 py-2"
                       >
                         <option value="Pending">Pending</option>
-                        <option value="Processing">
-                          Processing
-                        </option>
+                        <option value="Processing">Processing</option>
                         <option value="Shipped">Shipped</option>
-                        <option value="Delivered">
-                          Delivered
-                        </option>
-                        <option value="Cancelled">
-                          Cancelled
-                        </option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
                       </select>
                     </td>
 
