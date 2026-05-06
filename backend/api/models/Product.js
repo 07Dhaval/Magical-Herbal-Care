@@ -1,5 +1,44 @@
 const mongoose = require("mongoose");
 
+const descriptionSchema = new mongoose.Schema(
+  {
+    intro: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    ingredients: {
+      type: [String],
+      default: [],
+    },
+
+    process: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    benefits: {
+      type: [String],
+      default: [],
+    },
+
+    note: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    suitable: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -21,7 +60,6 @@ const productSchema = new mongoose.Schema(
       min: 0,
       set: (value) => {
         if (typeof value === "number") return value;
-
         if (!value) return 0;
 
         const cleaned = String(value)
@@ -33,39 +71,8 @@ const productSchema = new mongoose.Schema(
     },
 
     description: {
-      intro: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      ingredients: {
-        type: [String],
-        default: [],
-      },
-
-      process: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      benefits: {
-        type: [String],
-        default: [],
-      },
-
-      note: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      suitable: {
-        type: String,
-        default: "",
-        trim: true,
-      },
+      type: descriptionSchema,
+      default: () => ({}),
     },
 
     image: {
@@ -77,12 +84,6 @@ const productSchema = new mongoose.Schema(
     images: {
       type: [String],
       default: [],
-      validate: {
-        validator: function (arr) {
-          return Array.isArray(arr);
-        },
-        message: "Images must be an array",
-      },
     },
 
     isActive: {
@@ -90,35 +91,30 @@ const productSchema = new mongoose.Schema(
       default: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-/* Auto set main image from images array */
-productSchema.pre("save", function (next) {
-  try {
-    this.images = (this.images || []).filter(Boolean);
+// IMPORTANT: no "next" here
+productSchema.pre("validate", function () {
+  this.images = Array.isArray(this.images)
+    ? this.images.filter(Boolean)
+    : [];
 
-    if (!this.image && this.images.length > 0) {
-      this.image = this.images[0];
-    }
+  if (!this.image && this.images.length > 0) {
+    this.image = this.images[0];
+  }
 
-    if (this.image && !this.images.includes(this.image)) {
-      this.images.unshift(this.image);
-    }
-
-    next();
-  } catch (error) {
-    next(error);
+  if (this.image && !this.images.includes(this.image)) {
+    this.images.unshift(this.image);
   }
 });
 
-/* Clean response */
 productSchema.methods.toJSON = function () {
   const product = this.toObject();
 
-  product.images = (product.images || []).filter(Boolean);
+  product.images = Array.isArray(product.images)
+    ? product.images.filter(Boolean)
+    : [];
 
   if (!product.image && product.images.length > 0) {
     product.image = product.images[0];
@@ -128,5 +124,4 @@ productSchema.methods.toJSON = function () {
 };
 
 module.exports =
-  mongoose.models.Product ||
-  mongoose.model("Product", productSchema);
+  mongoose.models.Product || mongoose.model("Product", productSchema);
