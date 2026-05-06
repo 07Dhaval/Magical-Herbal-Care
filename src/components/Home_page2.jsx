@@ -75,9 +75,6 @@ export default function HomePage2() {
       <section className="bg-[#f6f3eb]">
         <div className="grid grid-cols-1 md:grid-cols-2 items-stretch">
           <div className="flex flex-col justify-center items-center text-center px-6 py-16 bg-[#efe7d4]">
-            <div className="bg-[#fffdf7] p-4 rounded-2xl shadow-sm border border-[#e7dcc3] mb-6">
-              <img src="/a.png" alt="Authentic" className="w-[160px]" />
-            </div>
 
             <h2 className="font-serif text-[36px] text-[#b48a2c]">
               Make You’re Unique
