@@ -100,7 +100,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style >{`
         .footer-title {
           font-size: 18px;
           font-weight: 600;
