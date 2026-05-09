@@ -9,13 +9,14 @@ const router = express.Router();
 
 const OTP_EXPIRY_MINUTES = 5;
 
-const generateOtp = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-const isValidEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
-// Force SMTP DNS lookup to IPv4 only
 const lookupIPv4 = (hostname, options, callback) => {
   dns.lookup(hostname, { family: 4 }, callback);
 };
@@ -23,21 +24,14 @@ const lookupIPv4 = (hostname, options, callback) => {
 const createTransporter = () => {
   const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpPort = Number(process.env.SMTP_PORT || 587);
-
-  console.log("SMTP CONFIG:", {
-    host: smtpHost,
-    port: smtpPort,
-    secure: false,
-    user: process.env.EMAIL_USER,
-  });
+  const smtpSecure = String(process.env.SMTP_SECURE || "false") === "true";
 
   return nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,
-    secure: false,
-    requireTLS: true,
+    secure: smtpSecure,
+    requireTLS: smtpPort === 587,
 
-    // important for Render
     family: 4,
     lookup: lookupIPv4,
 
@@ -48,6 +42,7 @@ const createTransporter = () => {
 
     tls: {
       servername: smtpHost,
+      rejectUnauthorized: true,
     },
 
     connectionTimeout: 30000,
@@ -102,6 +97,7 @@ router.post("/send", async (req, res) => {
               ${otp}
             </div>
             <p style="color:#555;">This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
+            <p style="color:#777;font-size:13px;">If you did not request this OTP, please ignore this email.</p>
           </div>
         </div>
       `,
