@@ -1,240 +1,153 @@
 const express = require("express");
+const nodemailer = require("nodemailer");
+const dns = require("dns");
+const Otp = require("../models/Otp");
+
+dns.setDefaultResultOrder("ipv4first");
+
 const router = express.Router();
-const Order = require("../models/Order");
 
-const parsePrice = (value) => {
-  if (typeof value === "number") return value;
-  if (!value) return 0;
+const OTP_EXPIRY_MINUTES = 5;
 
-  const match = String(value).replace(/,/g, "").match(/\d+(\.\d+)?/);
-  return match ? Number(match[0]) : 0;
+const generateOtp = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    requireTLS: true,
+
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+
+    tls: {
+      servername: process.env.SMTP_HOST || "smtp.gmail.com",
+      rejectUnauthorized: true,
+    },
+
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+  });
 };
 
-const cleanOrderStatus = (status) => {
-  const allowed = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
-  return allowed.includes(status) ? status : "Pending";
-};
-
-const cleanPaymentStatus = (status) => {
-  const allowed = ["Pending", "Paid", "Failed", "Refunded"];
-  return allowed.includes(status) ? status : "Pending";
-};
-
-const cleanPaymentMethod = (method) => {
-  return method === "Razorpay" ? "Razorpay" : "COD";
-};
-
-const cleanCustomer = (customer = {}) => ({
-  name: String(customer.name || "").trim(),
-  email: String(customer.email || "").trim().toLowerCase(),
-  phone: String(customer.phone || "").trim(),
-  address: String(customer.address || "").trim(),
-  city: String(customer.city || "").trim(),
-  state: String(customer.state || "").trim(),
-  pincode: String(customer.pincode || "").trim(),
-});
-
-const cleanItems = (items = []) => {
-  return items
-    .map((item) => {
-      const price = parsePrice(item.price);
-      const quantity = Math.max(1, Number(item.quantity || 1));
-
-      return {
-        productId: String(item.productId || item._id || item.id || ""),
-        name: String(item.name || "Product").trim(),
-        category: String(item.category || "").trim(),
-        image: String(item.image || item.images?.[0] || ""),
-        price,
-        quantity,
-      };
-    })
-    .filter((item) => item.name && item.price >= 0);
-};
-
-// SAVE COD / RAZORPAY ORDER
-router.post("/payment-success", async (req, res) => {
+router.post("/send", async (req, res) => {
   try {
-    const {
-      customer = {},
-      items = [],
-      totalAmount = 0,
-      paymentMethod = "COD",
-      paymentStatus = "Pending",
-      orderStatus = "Pending",
-      razorpayOrderId = "",
-      razorpayPaymentId = "",
-      razorpaySignature = "",
-    } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!email || !isValidEmail(email)) {
       return res.status(400).json({
         success: false,
-        message: "No order items found",
+        message: "Please enter a valid email address",
       });
     }
 
-    const cleanedItems = cleanItems(items);
-
-    if (cleanedItems.length === 0) {
-      return res.status(400).json({
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({
         success: false,
-        message: "Invalid order items",
+        message: "Email credentials missing in backend env",
       });
     }
 
-    const calculatedTotal = cleanedItems.reduce((sum, item) => {
-      return sum + item.price * item.quantity;
-    }, 0);
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    const finalTotal = parsePrice(totalAmount) || calculatedTotal;
+    await Otp.deleteMany({ email });
 
-    const finalPaymentMethod = cleanPaymentMethod(paymentMethod);
-    const finalPaymentStatus =
-      finalPaymentMethod === "Razorpay"
-        ? cleanPaymentStatus(paymentStatus || "Paid")
-        : cleanPaymentStatus(paymentStatus || "Pending");
-
-    const order = await Order.create({
-      customer: cleanCustomer(customer),
-      items: cleanedItems,
-      totalAmount: finalTotal,
-
-      paymentMethod: finalPaymentMethod,
-      paymentStatus: finalPaymentStatus,
-      orderStatus: cleanOrderStatus(orderStatus),
-
-      razorpayOrderId: String(razorpayOrderId || ""),
-      razorpayPaymentId: String(razorpayPaymentId || ""),
-      razorpaySignature: String(razorpaySignature || ""),
+    await Otp.create({
+      email,
+      otp,
+      expiresAt,
     });
 
-    return res.status(201).json({
+    const transporter = createTransporter();
+
+    await transporter.verify();
+
+    await transporter.sendMail({
+      from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your Magical Herbal Care OTP",
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
+          <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
+            <h2 style="color:#b48a2c;margin-top:0;">Magical Herbal Care OTP</h2>
+            <p style="color:#2f4f2f;">Your verification code is:</p>
+            <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2f4f2f;margin:18px 0;">
+              ${otp}
+            </div>
+            <p style="color:#555;">This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
+            <p style="color:#777;font-size:13px;">If you did not request this, please ignore this email.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    return res.json({
       success: true,
-      message: "Order saved successfully",
-      order,
+      message: "OTP sent successfully",
     });
   } catch (error) {
-    console.error("ORDER SAVE ERROR:", error);
+    console.error("Send Email OTP Error:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Order save failed",
+      message: "Failed to send OTP",
+      error: error.message,
     });
   }
 });
 
-// GET ALL ORDERS
-router.get("/", async (req, res) => {
+router.post("/verify", async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
 
-    res.json({
-      success: true,
-      orders,
-    });
-  } catch (error) {
-    console.error("FETCH ORDERS ERROR:", error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to fetch orders",
-    });
-  }
-});
-
-// GET SINGLE ORDER
-router.get("/:id", async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({
+    if (!email || !isValidEmail(email) || !otp) {
+      return res.status(400).json({
         success: false,
-        message: "Order not found",
+        message: "Valid email and OTP are required",
       });
     }
 
-    res.json({
-      success: true,
-      order,
-    });
-  } catch (error) {
-    console.error("FETCH ORDER ERROR:", error);
+    const record = await Otp.findOne({ email, otp });
 
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to fetch order",
-    });
-  }
-});
-
-// UPDATE ORDER STATUS
-router.put("/:id/status", async (req, res) => {
-  try {
-    const { orderStatus } = req.body;
-
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { orderStatus: cleanOrderStatus(orderStatus) },
-      { new: true, runValidators: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({
+    if (!record) {
+      return res.status(400).json({
         success: false,
-        message: "Order not found",
+        message: "Invalid OTP",
       });
     }
 
-    res.json({
-      success: true,
-      message: "Order status updated",
-      order,
-    });
-  } catch (error) {
-    console.error("UPDATE ORDER STATUS ERROR:", error);
+    if (record.expiresAt < new Date()) {
+      await Otp.deleteMany({ email });
 
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to update order status",
-    });
-  }
-});
-
-// UPDATE ORDER FALLBACK
-router.put("/:id", async (req, res) => {
-  try {
-    const { orderStatus, paymentStatus } = req.body;
-
-    const updateData = {};
-
-    if (orderStatus) updateData.orderStatus = cleanOrderStatus(orderStatus);
-    if (paymentStatus) updateData.paymentStatus = cleanPaymentStatus(paymentStatus);
-
-    const order = await Order.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!order) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: "Order not found",
+        message: "OTP expired",
       });
     }
 
-    res.json({
+    await Otp.deleteMany({ email });
+
+    return res.json({
       success: true,
-      message: "Order updated",
-      order,
+      message: "OTP verified successfully",
     });
   } catch (error) {
-    console.error("UPDATE ORDER ERROR:", error);
+    console.error("Verify OTP Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message || "Failed to update order",
+      message: "OTP verification failed",
+      error: error.message,
     });
   }
 });
