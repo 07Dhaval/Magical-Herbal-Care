@@ -6,30 +6,48 @@ const router = express.Router();
 
 const OTP_EXPIRY_MINUTES = 5;
 
-const generateOtp = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+// Generate 6 digit OTP
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
-const isValidEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// Email validation
+const isValidEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
 
+// SMTP transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: String(process.env.SMTP_SECURE || "true") === "true",
+    port: Number(process.env.SMTP_PORT || 587),
+
+    // For Gmail on Render use false with port 587
+    secure:
+      String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
+
+    requireTLS: true,
+
+    // Force IPv4 (fixes Render ENETUNREACH issue)
+    family: 4,
+
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+
     connectionTimeout: 30000,
     greetingTimeout: 30000,
     socketTimeout: 30000,
   });
 };
 
+// SEND OTP
 router.post("/send", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
 
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({
@@ -41,15 +59,19 @@ router.post("/send", async (req, res) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         success: false,
-        message: "Email credentials missing in backend env",
+        message: "Email credentials missing in environment variables",
       });
     }
 
     const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
+    );
 
+    // Remove previous OTPs
     await Otp.deleteMany({ email });
 
+    // Save new OTP
     await Otp.create({
       email,
       otp,
@@ -58,22 +80,43 @@ router.post("/send", async (req, res) => {
 
     const transporter = createTransporter();
 
+    // Verify SMTP connection
     await transporter.verify();
 
+    // Send email
     await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Your Magical Herbal Care OTP",
+      subject: "Your Magical Herbal Care OTP Verification Code",
       html: `
-        <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
-          <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
-            <h2 style="color:#b48a2c;margin-top:0;">Magical Herbal Care OTP</h2>
-            <p style="color:#2f4f2f;">Your verification code is:</p>
-            <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2f4f2f;margin:18px 0;">
+        <div style="font-family: Arial, sans-serif; background:#f8f4ea; padding:20px;">
+          <div style="max-width:500px; margin:auto; background:#ffffff; padding:25px; border-radius:12px; border:1px solid #e7dcc3;">
+            
+            <h2 style="color:#b48a2c; margin-top:0;">
+              Magical Herbal Care
+            </h2>
+
+            <p style="color:#2f4f2f; font-size:16px;">
+              Your OTP verification code is:
+            </p>
+
+            <div style="
+              font-size:32px;
+              font-weight:bold;
+              letter-spacing:8px;
+              color:#2f4f2f;
+              margin:20px 0;
+            ">
               ${otp}
             </div>
-            <p style="color:#555;">This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
-            <p style="color:#777;font-size:13px;">If you did not request this, please ignore this email.</p>
+
+            <p style="color:#555;">
+              This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.
+            </p>
+
+            <p style="color:#777; font-size:13px;">
+              If you didn't request this OTP, please ignore this email.
+            </p>
           </div>
         </div>
       `,
@@ -83,6 +126,7 @@ router.post("/send", async (req, res) => {
       success: true,
       message: "OTP sent successfully",
     });
+
   } catch (error) {
     console.error("Send Email OTP Error:", error);
 
@@ -94,9 +138,13 @@ router.post("/send", async (req, res) => {
   }
 });
 
+// VERIFY OTP
 router.post("/verify", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
+
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !isValidEmail(email) || !otp) {
@@ -124,12 +172,14 @@ router.post("/verify", async (req, res) => {
       });
     }
 
+    // Delete used OTP
     await Otp.deleteMany({ email });
 
     return res.json({
       success: true,
       message: "OTP verified successfully",
     });
+
   } catch (error) {
     console.error("Verify OTP Error:", error);
 
