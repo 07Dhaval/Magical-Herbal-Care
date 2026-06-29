@@ -6,20 +6,27 @@ const router = express.Router();
 
 const OTP_EXPIRY_MINUTES = 5;
 
-// Generate 6-digit OTP
+// =====================================
+// Generate 6 Digit OTP
+// =====================================
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Validate Email
+// =====================================
+// Email Validation
+// =====================================
 const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+// =====================================
 // Gmail Transporter
+// =====================================
 const createTransporter = () => {
   return nodemailer.createTransport({
     service: "gmail",
+
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -27,14 +34,24 @@ const createTransporter = () => {
   });
 };
 
-// =======================
+// =====================================
 // SEND OTP
-// =======================
+// =====================================
 router.post("/send", async (req, res) => {
   try {
+
+    const name = String(req.body.name || "").trim();
+
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is required",
+      });
+    }
 
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({
@@ -59,6 +76,7 @@ router.post("/send", async (req, res) => {
     await Otp.deleteMany({ email });
 
     await Otp.create({
+      name,
       email,
       otp,
       expiresAt,
@@ -68,7 +86,7 @@ router.post("/send", async (req, res) => {
 
     try {
       await transporter.verify();
-      console.log("SMTP Connected Successfully");
+      console.log("✅ SMTP Connected");
     } catch (err) {
       console.warn("SMTP Verify Failed:", err.message);
     }
@@ -77,52 +95,56 @@ router.post("/send", async (req, res) => {
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your Magical Herbal Care OTP",
-      html: `      <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
-        <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
 
-          <h2 style="color:#b48a2c;margin-top:0;">
-            Magical Herbal Care OTP
+      html: `
+      <div style="background:#f8f4ea;padding:30px;font-family:Arial,sans-serif;">
+
+        <div style="max-width:600px;margin:auto;background:#fff;padding:35px;border-radius:12px;border:1px solid #e5d8b8;">
+
+          <h2 style="text-align:center;color:#b48a2c;margin:0;">
+            Magical Herbal Care
           </h2>
 
-          <p style="color:#2f4f2f;">
-            Your verification code is:
+          <p style="margin-top:30px;">
+            Hello <strong>${name}</strong>,
           </p>
 
-          <div
-            style="
-              font-size:34px;
-              font-weight:bold;
-              letter-spacing:8px;
-              color:#2f4f2f;
-              margin:20px 0;
-              text-align:center;
-            "
-          >
+          <p>
+            Thank you for registering with Magical Herbal Care.
+          </p>
+
+          <p>
+            Use the OTP below to verify your email.
+          </p>
+
+          <div style="
+            margin:35px 0;
+            text-align:center;
+            font-size:40px;
+            letter-spacing:8px;
+            font-weight:bold;
+            color:#2f4f2f;
+          ">
             ${otp}
           </div>
 
-          <p style="color:#555;">
+          <p>
             This OTP is valid for
-            <b>${OTP_EXPIRY_MINUTES} minutes</b>.
+            <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.
           </p>
 
-          <p style="color:#777;font-size:13px;">
-            Please do not share this OTP with anyone.
+          <p>
+            Do not share this OTP with anyone.
           </p>
 
-          <hr style="margin:20px 0;border:none;border-top:1px solid #eee;" />
+          <hr style="margin:30px 0">
 
-          <p
-            style="
-              text-align:center;
-              color:#b48a2c;
-              font-weight:bold;
-            "
-          >
+          <p style="text-align:center;color:#b48a2c;font-weight:bold;">
             Magical Herbal Care
           </p>
 
         </div>
+
       </div>
       `,
     });
@@ -130,16 +152,13 @@ router.post("/send", async (req, res) => {
     return res.json({
       success: true,
       message: "OTP sent successfully",
+      email,
     });
 
   } catch (error) {
-    console.error("========== OTP ERROR ==========");
-    console.error("Message:", error.message);
-    console.error("Code:", error.code);
-    console.error("Response:", error.response);
-    console.error("Response Code:", error.responseCode);
+
+    console.error("========== SEND OTP ERROR ==========");
     console.error(error);
-    console.error("===============================");
 
     return res.status(500).json({
       success: false,
@@ -147,27 +166,31 @@ router.post("/send", async (req, res) => {
       error: error.message,
     });
   }
-});
-
-// =======================
+});// =====================================
 // VERIFY OTP
-// =======================
+// =====================================
 router.post("/verify", async (req, res) => {
   try {
+
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
 
-    const otp = String(req.body.otp || "").trim();
+    const otp = String(req.body.otp || "")
+      .trim();
 
     if (!email || !isValidEmail(email) || !otp) {
-  return res.status(400).json({
-    success: false,
-    message: "Valid email and OTP are required",
-  });
-}
+      return res.status(400).json({
+        success: false,
+        message: "Valid email and OTP are required",
+      });
+    }
 
-const record = await Otp.findOne({ email, otp });
+    // Find OTP in database
+    const record = await Otp.findOne({
+      email,
+      otp,
+    });
 
     if (!record) {
       return res.status(400).json({
@@ -176,7 +199,9 @@ const record = await Otp.findOne({ email, otp });
       });
     }
 
+    // Check OTP expiry
     if (record.expiresAt < new Date()) {
+
       await Otp.deleteMany({ email });
 
       return res.status(400).json({
@@ -185,14 +210,20 @@ const record = await Otp.findOne({ email, otp });
       });
     }
 
+    // Delete OTP after successful verification
     await Otp.deleteMany({ email });
 
     return res.json({
       success: true,
       message: "OTP verified successfully",
+      user: {
+        name: record.name,
+        email: record.email,
+      },
     });
 
   } catch (error) {
+
     console.error("========== VERIFY OTP ERROR ==========");
     console.error(error);
 
@@ -202,6 +233,110 @@ const record = await Otp.findOne({ email, otp });
       error: error.message,
     });
   }
+});// =====================================
+// RESEND OTP (Optional)
+// =====================================
+router.post("/resend", async (req, res) => {
+  try {
+
+    const name = String(req.body.name || "").trim();
+
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is required",
+      });
+    }
+
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email",
+      });
+    }
+
+    const otp = generateOtp();
+
+    const expiresAt = new Date(
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
+    );
+
+    await Otp.deleteMany({ email });
+
+    await Otp.create({
+      name,
+      email,
+      otp,
+      expiresAt,
+    });
+
+    const transporter = createTransporter();
+
+    await transporter.sendMail({
+      from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your New OTP - Magical Herbal Care",
+
+      html: `
+      <div style="font-family:Arial;padding:30px;background:#f8f4ea;">
+        <div style="max-width:600px;margin:auto;background:#fff;padding:30px;border-radius:12px;">
+
+          <h2 style="text-align:center;color:#b48a2c;">
+            Magical Herbal Care
+          </h2>
+
+          <p>Hello <strong>${name}</strong>,</p>
+
+          <p>Your new OTP is</p>
+
+          <h1 style="
+            text-align:center;
+            letter-spacing:8px;
+            color:#2f4f2f;
+          ">
+            ${otp}
+          </h1>
+
+          <p>This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
+
+        </div>
+      </div>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "OTP resent successfully",
+    });
+
+  } catch (error) {
+
+    console.error("========== RESEND OTP ERROR ==========");
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to resend OTP",
+      error: error.message,
+    });
+  }
 });
 
+// =====================================
+// DEFAULT ROUTE
+// =====================================
+router.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "OTP API Running Successfully",
+  });
+});
+
+// =====================================
+// EXPORT ROUTER
+// =====================================
 module.exports = router;
