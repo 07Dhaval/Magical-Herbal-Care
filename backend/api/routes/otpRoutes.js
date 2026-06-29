@@ -161,11 +161,13 @@ router.post("/verify", async (req, res) => {
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !isValidEmail(email) || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid email and OTP are required",
-      });
-    }    const record = await Otp.findOne({ email, otp });
+  return res.status(400).json({
+    success: false,
+    message: "Valid email and OTP are required",
+  });
+}
+
+const record = await Otp.findOne({ email, otp });
 
     if (!record) {
       return res.status(400).json({
