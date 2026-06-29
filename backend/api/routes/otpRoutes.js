@@ -1,59 +1,40 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
-const dns = require("dns");
 const Otp = require("../models/Otp");
-
-dns.setDefaultResultOrder("ipv4first");
 
 const router = express.Router();
 
 const OTP_EXPIRY_MINUTES = 5;
 
+// Generate 6-digit OTP
 const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Validate Email
 const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-const lookupIPv4 = (hostname, options, callback) => {
-  dns.lookup(hostname, { family: 4 }, callback);
-};
-
+// Gmail Transporter
 const createTransporter = () => {
-  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
-  const smtpPort = Number(process.env.SMTP_PORT || 587);
-  const smtpSecure = String(process.env.SMTP_SECURE || "false") === "true";
-
   return nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    requireTLS: smtpPort === 587,
-
-    family: 4,
-    lookup: lookupIPv4,
-
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-
-    tls: {
-      servername: smtpHost,
-      rejectUnauthorized: true,
-    },
-
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
   });
 };
 
+// =======================
+// SEND OTP
+// =======================
 router.post("/send", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
 
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({
@@ -70,7 +51,10 @@ router.post("/send", async (req, res) => {
     }
 
     const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    const expiresAt = new Date(
+      Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
+    );
 
     await Otp.deleteMany({ email });
 
@@ -82,24 +66,64 @@ router.post("/send", async (req, res) => {
 
     const transporter = createTransporter();
 
-    await transporter.verify();
+    try {
+      await transporter.verify();
+      console.log("SMTP Connected Successfully");
+    } catch (err) {
+      console.warn("SMTP Verify Failed:", err.message);
+    }
 
     await transporter.sendMail({
       from: `"Magical Herbal Care" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your Magical Herbal Care OTP",
-      html: `
-        <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
-          <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
-            <h2 style="color:#b48a2c;margin-top:0;">Magical Herbal Care OTP</h2>
-            <p style="color:#2f4f2f;">Your verification code is:</p>
-            <div style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#2f4f2f;margin:18px 0;">
-              ${otp}
-            </div>
-            <p style="color:#555;">This OTP is valid for ${OTP_EXPIRY_MINUTES} minutes.</p>
-            <p style="color:#777;font-size:13px;">If you did not request this OTP, please ignore this email.</p>
+      html: `      <div style="font-family:Arial,sans-serif;background:#f8f4ea;padding:24px;">
+        <div style="max-width:520px;margin:auto;background:#ffffff;border:1px solid #e7dcc3;border-radius:14px;padding:24px;">
+
+          <h2 style="color:#b48a2c;margin-top:0;">
+            Magical Herbal Care OTP
+          </h2>
+
+          <p style="color:#2f4f2f;">
+            Your verification code is:
+          </p>
+
+          <div
+            style="
+              font-size:34px;
+              font-weight:bold;
+              letter-spacing:8px;
+              color:#2f4f2f;
+              margin:20px 0;
+              text-align:center;
+            "
+          >
+            ${otp}
           </div>
+
+          <p style="color:#555;">
+            This OTP is valid for
+            <b>${OTP_EXPIRY_MINUTES} minutes</b>.
+          </p>
+
+          <p style="color:#777;font-size:13px;">
+            Please do not share this OTP with anyone.
+          </p>
+
+          <hr style="margin:20px 0;border:none;border-top:1px solid #eee;" />
+
+          <p
+            style="
+              text-align:center;
+              color:#b48a2c;
+              font-weight:bold;
+            "
+          >
+            Magical Herbal Care
+          </p>
+
         </div>
+      </div>
       `,
     });
 
@@ -107,14 +131,15 @@ router.post("/send", async (req, res) => {
       success: true,
       message: "OTP sent successfully",
     });
+
   } catch (error) {
     console.error("========== OTP ERROR ==========");
-console.error("Message:", error.message);
-console.error("Code:", error.code);
-console.error("Response:", error.response);
-console.error("Response Code:", error.responseCode);
-console.error(error);
-console.error("===============================");
+    console.error("Message:", error.message);
+    console.error("Code:", error.code);
+    console.error("Response:", error.response);
+    console.error("Response Code:", error.responseCode);
+    console.error(error);
+    console.error("===============================");
 
     return res.status(500).json({
       success: false,
@@ -124,9 +149,15 @@ console.error("===============================");
   }
 });
 
+// =======================
+// VERIFY OTP
+// =======================
 router.post("/verify", async (req, res) => {
   try {
-    const email = String(req.body.email || "").trim().toLowerCase();
+    const email = String(req.body.email || "")
+      .trim()
+      .toLowerCase();
+
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !isValidEmail(email) || !otp) {
@@ -134,9 +165,7 @@ router.post("/verify", async (req, res) => {
         success: false,
         message: "Valid email and OTP are required",
       });
-    }
-
-    const record = await Otp.findOne({ email, otp });
+    }    const record = await Otp.findOne({ email, otp });
 
     if (!record) {
       return res.status(400).json({
@@ -160,8 +189,10 @@ router.post("/verify", async (req, res) => {
       success: true,
       message: "OTP verified successfully",
     });
+
   } catch (error) {
-    console.error("Verify OTP Error:", error);
+    console.error("========== VERIFY OTP ERROR ==========");
+    console.error(error);
 
     return res.status(500).json({
       success: false,
