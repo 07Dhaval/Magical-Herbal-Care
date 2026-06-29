@@ -1,39 +1,28 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const Product = require("../models/Product");
 
 console.log("✅ LOADED PRODUCT ROUTES:", __filename);
 
 const router = express.Router();
 
-const uploadDir = path.join(__dirname, "../uploads/products");
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, uniqueName);
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "magical-herbal-care/products",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
   },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter(req, file, cb) {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"), false);
-    }
+  limits: {
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
@@ -42,14 +31,8 @@ const uploadProductImages = upload.fields([
   { name: "images", maxCount: 5 },
 ]);
 
-const getBaseUrl = (req) => {
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-  return `${protocol}://${req.get("host")}`;
-};
 
-const getImageUrl = (req, filename) => {
-  return `${getBaseUrl(req)}/uploads/products/${filename}`;
-};
+
 
 const cleanImages = (images = []) => {
   return [...new Set(images.filter(Boolean))];
@@ -150,11 +133,11 @@ router.post("/", uploadProductImages, async (req, res) => {
     const singleImage = req.files?.image?.[0] || null;
     const multiImages = req.files?.images || [];
 
-    let images = multiImages.map((file) => getImageUrl(req, file.filename));
+    let images = multiImages.map((file) => file.path);
 
-    const mainImage = singleImage
-      ? getImageUrl(req, singleImage.filename)
-      : images[0] || "";
+const mainImage = singleImage
+  ? singleImage.path
+  : images[0] || "";
 
     images = cleanImages(mainImage ? [mainImage, ...images] : images);
 
@@ -201,11 +184,11 @@ router.put("/:id", uploadProductImages, async (req, res) => {
     let images = Array.isArray(oldProduct.images) ? [...oldProduct.images] : [];
 
     if (multiImages.length > 0) {
-      images = multiImages.map((file) => getImageUrl(req, file.filename));
+      images = multiImages.map((file) => file.path);
     }
 
     if (singleImage) {
-      image = getImageUrl(req, singleImage.filename);
+      image = singleImage.path;
     }
 
     if (!image && images.length > 0) {

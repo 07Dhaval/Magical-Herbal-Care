@@ -5,7 +5,9 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiProxyTarget =
-    env.VITE_API_PROXY_TARGET || env.API_PROXY_TARGET || "http://magical-herbal-care.onrender.com";
+  env.VITE_API_PROXY_TARGET ||
+  env.API_PROXY_TARGET ||
+  "https://magical-herbal-care.onrender.com";
 
   return {
     plugins: [react(), tailwindcss()],
