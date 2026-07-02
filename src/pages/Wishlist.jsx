@@ -203,8 +203,9 @@ export default function Wishlist() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email.trim().toLowerCase(),
-        }),
+    email: loginData.email.trim().toLowerCase(),
+    otp: loginData.otp.trim(),
+  }),
       });
 
       const data = await res.json();

@@ -58,7 +58,14 @@ function createApp() {
 
   app.use("/api/products", productRoutes);
   app.use("/api/orders", orderRoutes);
-  app.use("/api/otp", otpRoutes);
+  console.log("OTP ROUTE REGISTERED");
+
+app.use("/api/otp", (req, res, next) => {
+  console.log("OTP REQUEST:", req.method, req.originalUrl);
+  next();
+});
+
+app.use("/api/otp", otpRoutes);
 
   app.use((req, res) => {
     res.status(404).json({

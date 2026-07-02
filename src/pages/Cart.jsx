@@ -9,7 +9,8 @@ const getApiBaseUrl = () => {
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
 
-  const localUrl = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
+  const localUrl =
+    import.meta.env.VITE_LOCAL_API_URL || "http://localhost:5000";
   const renderUrl =
     import.meta.env.VITE_RENDER_API_URL ||
     "https://magical-herbal-care.onrender.com";
@@ -105,7 +106,10 @@ export default function Cart() {
       const res = await fetch(`${API_BASE_URL}/api/otp/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginData.email.trim().toLowerCase() }),
+        body: JSON.stringify({
+    email: loginData.email.trim().toLowerCase(),
+    otp: loginData.otp.trim(),
+  }),
       });
 
       const data = await res.json();
@@ -186,7 +190,7 @@ export default function Cart() {
 
   const removeItem = (id) => {
     const updated = cartItems.filter(
-      (item) => String(getItemId(item)) !== String(id)
+      (item) => String(getItemId(item)) !== String(id),
     );
 
     setCartItems(updated);
@@ -229,7 +233,9 @@ export default function Cart() {
     if (price === undefined || price === null) return 0;
     if (typeof price === "number") return price;
 
-    const match = String(price).replace(/,/g, "").match(/\d+(\.\d+)?/);
+    const match = String(price)
+      .replace(/,/g, "")
+      .match(/\d+(\.\d+)?/);
     return match ? parseFloat(match[0]) : 0;
   };
 

@@ -218,9 +218,10 @@ export default function ProductDetails() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: loginData.email.trim().toLowerCase(),
-        }),
+       body: JSON.stringify({
+  name: loginData.name.trim(),
+  email: loginData.email.trim().toLowerCase(),
+}),
       });
 
       const data = await res.json();
@@ -253,10 +254,10 @@ export default function ProductDetails() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email.trim().toLowerCase(),
-          otp: loginData.otp,
-        }),
-      });
+    email: loginData.email.trim().toLowerCase(),
+    otp: loginData.otp.trim(),
+  }),
+});
 
       const data = await res.json();
 

@@ -351,8 +351,9 @@ export default function Checkout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email.trim().toLowerCase(),
-        }),
+  name: loginData.name.trim(),
+  email: loginData.email.trim().toLowerCase(),
+}),
       });
 
       const data = await res.json();
@@ -383,10 +384,10 @@ export default function Checkout() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: loginData.email.trim().toLowerCase(),
-          otp: loginData.otp,
-        }),
-      });
+    email: loginData.email.trim().toLowerCase(),
+    otp: loginData.otp.trim(),
+  }),
+});
 
       const data = await res.json();
 
